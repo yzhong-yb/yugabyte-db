@@ -349,6 +349,85 @@ ybcBeginForeignScan(ForeignScanState *node, int eflags)
 	YbSetCatalogCacheVersion(ybc_state->handle, YbGetCatalogCacheVersion());
 }
 
+static void
+ybcSetupOnePushdownAggTarget(ForeignScanState *node, bool aggstar, List *args, char *func_name, 
+	const YBCPgTypeEntity *type_entity, Oid aggcollid)
+{
+	Relation relation = node->ss.ss_currentRelation;
+	YbFdwExecState *ybc_state = (YbFdwExecState *) node->fdw_state;
+	TupleDesc tupdesc = RelationGetDescr(relation);
+
+	ListCell *lc_arg;
+	YBCPgExpr op_handle;
+
+	/* Create operator. */
+	HandleYBStatus(YBCPgNewOperator(ybc_state->handle, func_name, type_entity, aggcollid, &op_handle));
+
+	/* Handle arguments. */
+	if (aggstar)
+	{
+		/*
+		 * Add dummy argument for COUNT(*) case, turning it into COUNT(0).
+		 * We don't use a column reference as we want to count rows
+		 * even if all column values are NULL.
+		 */
+		YBCPgExpr const_handle;
+		HandleYBStatus(YBCPgNewConstant(
+			ybc_state->handle, type_entity, false /* collate_is_valid_non_c */,
+			NULL /* collation_sortkey */, 0 /* datum */, false /* is_null */,
+			&const_handle));
+		HandleYBStatus(YBCPgOperatorAppendArg(op_handle, const_handle));
+	}
+	else
+	{
+		/* Add aggregate arguments to operator. */
+		foreach (lc_arg, args)
+		{
+			TargetEntry *tle = lfirst_node(TargetEntry, lc_arg);
+			if (IsA(tle->expr, Const))
+			{
+				Const *const_node = castNode(Const, tle->expr);
+				/* Already checked by yb_agg_pushdown_supported */
+				Assert(const_node->constisnull || const_node->constbyval);
+
+				YBCPgExpr const_handle;
+				HandleYBStatus(YBCPgNewConstant(
+					ybc_state->handle, type_entity,
+					false /* collate_is_valid_non_c */,
+					NULL /* collation_sortkey */, const_node->constvalue,
+					const_node->constisnull, &const_handle));
+				HandleYBStatus(YBCPgOperatorAppendArg(op_handle, const_handle));
+			}
+			else if (IsA(tle->expr, Var))
+			{
+				/*
+				 * Use original attribute number (varoattno) instead of
+				 * projected one (varattno) as projection is disabled for tuples
+				 * produced by pushed down operators.
+				 */
+				int				  attno = castNode(Var, tle->expr)->varoattno;
+				Form_pg_attribute attr = TupleDescAttr(tupdesc, attno - 1);
+				YBCPgTypeAttrs	  type_attrs = {attr->atttypmod};
+
+				YBCPgExpr arg =
+					YBCNewColumnRef(ybc_state->handle, attno, attr->atttypid,
+									attr->attcollation, &type_attrs);
+				HandleYBStatus(YBCPgOperatorAppendArg(op_handle, arg));
+			}
+			else
+			{
+				/* Should never happen. */
+				ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
+								errmsg("unsupported aggregate function "
+									   "argument type")));
+			}
+		}
+	}
+
+	/* Add aggregate operator as scan target. */
+	HandleYBStatus(YBCPgDmlAppendTarget(ybc_state->handle, op_handle));
+}
+
 /*
  * ybSetupScanTargets
  *		Add the target expressions to the DocDB statement.
@@ -441,82 +520,24 @@ ybcSetupScanTargets(ForeignScanState *node)
 		{
 			Aggref *aggref = lfirst_node(Aggref, lc);
 			char *func_name = get_func_name(aggref->aggfnoid);
-			ListCell *lc_arg;
-			YBCPgExpr op_handle;
 			const YBCPgTypeEntity *type_entity;
+
+			elog(WARNING, "agg type %s", func_name);
 
 			/* Get type entity for the operator from the aggref. */
 			type_entity = YbDataTypeFromOidMod(InvalidAttrNumber, aggref->aggtranstype);
 
-			/* Create operator. */
-			HandleYBStatus(YBCPgNewOperator(ybc_state->handle, func_name, type_entity, aggref->aggcollid, &op_handle));
+			if (strcmp(func_name, "avg") == 0)
+			{
+				type_entity = YbDataTypeFromOidMod(InvalidAttrNumber, INT8OID);
 
-			/* Handle arguments. */
-			if (aggref->aggstar) {
-				/*
-				 * Add dummy argument for COUNT(*) case, turning it into COUNT(0).
-				 * We don't use a column reference as we want to count rows
-				 * even if all column values are NULL.
-				 */
-				YBCPgExpr const_handle;
-				HandleYBStatus(YBCPgNewConstant(ybc_state->handle,
-								 type_entity,
-								 false /* collate_is_valid_non_c */,
-								 NULL /* collation_sortkey */,
-								 0 /* datum */,
-								 false /* is_null */,
-								 &const_handle));
-				HandleYBStatus(YBCPgOperatorAppendArg(op_handle, const_handle));
-			} else {
-				/* Add aggregate arguments to operator. */
-				foreach(lc_arg, aggref->args)
-				{
-					TargetEntry *tle = lfirst_node(TargetEntry, lc_arg);
-					if (IsA(tle->expr, Const))
-					{
-						Const* const_node = castNode(Const, tle->expr);
-						/* Already checked by yb_agg_pushdown_supported */
-						Assert(const_node->constisnull || const_node->constbyval);
-
-						YBCPgExpr const_handle;
-						HandleYBStatus(YBCPgNewConstant(ybc_state->handle,
-										 type_entity,
-										 false /* collate_is_valid_non_c */,
-										 NULL /* collation_sortkey */,
-										 const_node->constvalue,
-										 const_node->constisnull,
-										 &const_handle));
-						HandleYBStatus(YBCPgOperatorAppendArg(op_handle, const_handle));
-					}
-					else if (IsA(tle->expr, Var))
-					{
-						/*
-						 * Use original attribute number (varoattno) instead of projected one (varattno)
-						 * as projection is disabled for tuples produced by pushed down operators.
-						 */
-						int attno = castNode(Var, tle->expr)->varoattno;
-						Form_pg_attribute attr = TupleDescAttr(tupdesc, attno - 1);
-						YBCPgTypeAttrs type_attrs = {attr->atttypmod};
-
-						YBCPgExpr arg = YBCNewColumnRef(ybc_state->handle,
-														attno,
-														attr->atttypid,
-														attr->attcollation,
-														&type_attrs);
-						HandleYBStatus(YBCPgOperatorAppendArg(op_handle, arg));
-					}
-					else
-					{
-						/* Should never happen. */
-						ereport(ERROR,
-								(errcode(ERRCODE_INTERNAL_ERROR),
-								 errmsg("unsupported aggregate function argument type")));
-					}
-				}
+				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, "sum", type_entity, aggref->aggcollid);
+				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, "count", type_entity, aggref->aggcollid);
 			}
-
-			/* Add aggregate operator as scan target. */
-			HandleYBStatus(YBCPgDmlAppendTarget(ybc_state->handle, op_handle));
+			else
+			{
+				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, func_name, type_entity, aggref->aggcollid);
+			}
 		}
 
 		/*
