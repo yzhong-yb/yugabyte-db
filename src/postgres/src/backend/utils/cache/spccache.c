@@ -221,7 +221,8 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 	text *placement_array = json_get_value(tsp_options_json,
 											"placement_blocks");
 	const int length = get_json_array_length(placement_array);
-	char *keys[4] = {"cloud", "region", "zone", "min_num_replicas"};
+	char *keys[5] =
+		{"cloud", "region", "zone", "min_num_replicas", "leader_preference"};
 	const char *current_cloud = YBGetCurrentCloud();
 	const char *current_region = YBGetCurrentRegion();
 	const char *current_zone = YBGetCurrentZone();
@@ -234,10 +235,46 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 
 	GeolocationDistance farthest = ZONE_LOCAL;
 
+	/* find the minimum leader preference, if it exists */
+	bool leader_pref_exists = false;
+	int min_leader_pref = INT_MAX;
+	for (size_t i = 0; i < length; i++)
+	{
+		text *json_element = get_json_array_element(placement_array, i);
+
+		text *pref = json_get_denormalized_value(json_element, keys[4]);
+		if (pref != NULL)
+		{
+			leader_pref_exists = true;
+
+			int leader_pref = atoi(text_to_cstring(pref));
+			if (leader_pref < min_leader_pref)
+			{
+				min_leader_pref = leader_pref;
+			}
+		}
+	}
+
 	for (size_t i = 0; i < length; i++)
 	{
 		GeolocationDistance current_dist;
 		text *json_element = get_json_array_element(placement_array, i);
+
+		/* check if this placement is leader-preferred: skip it if it's not */
+		text *pref = json_get_denormalized_value(json_element, keys[4]);
+		if (pref != NULL)
+		{
+			int leader_pref = atoi(text_to_cstring(pref));
+			if (leader_pref > min_leader_pref)
+			{
+				continue;
+			}
+		}
+		else if (leader_pref_exists)
+		{
+			continue;
+		}
+
 		const char *tsp_cloud = text_to_cstring(
 			json_get_denormalized_value(json_element, keys[0]));
 		const char *tsp_region = text_to_cstring(
