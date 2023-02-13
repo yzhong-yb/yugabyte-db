@@ -234,46 +234,12 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 	}
 
 	GeolocationDistance farthest = ZONE_LOCAL;
-
-	/* find the minimum leader preference, if it exists */
 	bool leader_pref_exists = false;
-	int min_leader_pref = INT_MAX;
-	for (size_t i = 0; i < length; i++)
-	{
-		text *json_element = get_json_array_element(placement_array, i);
-
-		text *pref = json_get_denormalized_value(json_element, keys[4]);
-		if (pref != NULL)
-		{
-			leader_pref_exists = true;
-
-			int leader_pref = atoi(text_to_cstring(pref));
-			if (leader_pref < min_leader_pref)
-			{
-				min_leader_pref = leader_pref;
-			}
-		}
-	}
 
 	for (size_t i = 0; i < length; i++)
 	{
 		GeolocationDistance current_dist;
 		text *json_element = get_json_array_element(placement_array, i);
-
-		/* check if this placement is leader-preferred: skip it if it's not */
-		text *pref = json_get_denormalized_value(json_element, keys[4]);
-		if (pref != NULL)
-		{
-			int leader_pref = atoi(text_to_cstring(pref));
-			if (leader_pref > min_leader_pref)
-			{
-				continue;
-			}
-		}
-		else if (leader_pref_exists)
-		{
-			continue;
-		}
 
 		const char *tsp_cloud = text_to_cstring(
 			json_get_denormalized_value(json_element, keys[0]));
@@ -281,7 +247,6 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 			json_get_denormalized_value(json_element, keys[1]));
 		const char *tsp_zone = text_to_cstring(
 			json_get_denormalized_value(json_element, keys[2]));
-
 
 		/* are the current cloud and the given cloud the same */
 		if (strcmp(tsp_cloud, current_cloud) == 0)
@@ -308,7 +273,25 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 		{
 			current_dist = INTER_CLOUD;
 		}
-		farthest = current_dist > farthest ? current_dist : farthest;
+
+		/* check if this placement is leader-preferred: skip it if it's not */
+		text *pref = json_get_denormalized_value(json_element, keys[4]);
+		if (pref != NULL && atoi(text_to_cstring(pref)) == 1)
+		{
+			if (!leader_pref_exists)
+			{
+				farthest = current_dist;
+			}
+			else
+			{
+				farthest = current_dist > farthest ? current_dist : farthest;
+			}
+			leader_pref_exists = true;
+		}
+		else if (!leader_pref_exists)
+		{
+			farthest = current_dist > farthest ? current_dist : farthest;
+		}
 	}
 	return farthest;
 }
