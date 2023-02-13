@@ -380,3 +380,57 @@ DROP TABLE foo;
 DROP TABLE bar;
 DROP TABLESPACE valid_tablespace;
 DROP TABLESPACE LP;
+
+/*
+Testing that an index in a tablespace with leader preference on a closer placement is preferred
+over one on a tablespace with leader preference on a farther placement.
+*/
+
+CREATE TABLE foo(x int, y int);
+
+CREATE TABLESPACE zone_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE TABLESPACE region_pref 
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE TABLESPACE cloud_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE TABLESPACE far_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1,"leader_preference":1}]}');
+
+CREATE UNIQUE INDEX zone_pref_ind ON foo(x) INCLUDE (y) TABLESPACE zone_pref;
+CREATE UNIQUE INDEX region_pref_ind ON foo(x) INCLUDE (y) TABLESPACE region_pref;
+CREATE UNIQUE INDEX cloud_pref_ind ON foo(x) INCLUDE (y) TABLESPACE cloud_pref;
+
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+DROP INDEX zone_pref_ind;
+
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+DROP INDEX region_pref_ind;
+
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+DROP INDEX cloud_pref_ind;
+
+DROP TABLE foo;
+DROP TABLESPACE zone_pref;
+DROP TABLESPACE region_pref;
+DROP TABLESPACE cloud_pref;
+DROP TABLESPACE far_pref;
