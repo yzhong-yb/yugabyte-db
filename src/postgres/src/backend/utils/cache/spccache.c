@@ -278,15 +278,15 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 		text *pref = json_get_denormalized_value(json_element, keys[4]);
 		if (pref != NULL && atoi(text_to_cstring(pref)) == 1)
 		{
-			if (!leader_pref_exists)
-			{
-				farthest = current_dist;
-			}
-			else
+			if (leader_pref_exists)
 			{
 				farthest = current_dist > farthest ? current_dist : farthest;
 			}
-			leader_pref_exists = true;
+			else
+			{
+				leader_pref_exists = true;
+				farthest = current_dist;
+			}
 		}
 		else if (!leader_pref_exists)
 		{
