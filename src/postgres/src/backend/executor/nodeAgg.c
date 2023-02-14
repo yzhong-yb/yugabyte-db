@@ -1571,18 +1571,12 @@ yb_agg_pushdown_supported(AggState *aggstate)
 		Aggref *aggref = aggrefstate->aggref;
 		char *func_name = get_func_name(aggref->aggfnoid);
 
-		//yzhong note: big hack
-		if (strcmp(func_name, "avg") == 0)
-		{
-			aggstate->yb_pushdown_supported = true;
-			return;
-		}
-
 		/* Only support COUNT/MIN/MAX/SUM. */
 		if (strcmp(func_name, "count") != 0 &&
 			strcmp(func_name, "min") != 0 &&
 			strcmp(func_name, "max") != 0 &&
-			strcmp(func_name, "sum") != 0)
+			strcmp(func_name, "sum") != 0 &&
+			strcmp(func_name, "avg") != 0)
 			return;
 
 		/* No ORDER BY. */
@@ -1614,10 +1608,14 @@ yb_agg_pushdown_supported(AggState *aggstate)
 			return;
 		elog(WARNING, "%d", aggref->aggtranstype);
 		/* Aggtranstype is a supported YB key type and is not INTERNAL or NUMERIC. */
-		if (!YbDataTypeIsValidForKey(aggref->aggtranstype) ||
-			aggref->aggtranstype == INTERNALOID ||
-			aggref->aggtranstype == NUMERICOID)
-			return;
+
+		if (!(strcmp(func_name, "avg") == 0 && aggref->aggtranstype == INT8ARRAYOID))
+		{
+			if (!YbDataTypeIsValidForKey(aggref->aggtranstype) ||
+				aggref->aggtranstype == INTERNALOID ||
+				aggref->aggtranstype == NUMERICOID)
+				return;
+		}
 		elog(WARNING, "yzhong test 3");
 
 		/*
