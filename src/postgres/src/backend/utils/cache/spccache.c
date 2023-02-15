@@ -221,8 +221,8 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 	text *placement_array = json_get_value(tsp_options_json,
 											"placement_blocks");
 	const int length = get_json_array_length(placement_array);
-	char *keys[5] =
-		{"cloud", "region", "zone", "min_num_replicas", "leader_preference"};
+	char *cloudKey = "cloud", *regionKey = "region",
+		*zoneKey = "zone", *leaderPrefKey = "leader_preference";
 	const char *current_cloud = YBGetCurrentCloud();
 	const char *current_region = YBGetCurrentRegion();
 	const char *current_zone = YBGetCurrentZone();
@@ -242,11 +242,11 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 		text *json_element = get_json_array_element(placement_array, i);
 
 		const char *tsp_cloud = text_to_cstring(
-			json_get_denormalized_value(json_element, keys[0]));
+			json_get_denormalized_value(json_element, cloudKey));
 		const char *tsp_region = text_to_cstring(
-			json_get_denormalized_value(json_element, keys[1]));
+			json_get_denormalized_value(json_element, regionKey));
 		const char *tsp_zone = text_to_cstring(
-			json_get_denormalized_value(json_element, keys[2]));
+			json_get_denormalized_value(json_element, zoneKey));
 
 		/* are the current cloud and the given cloud the same */
 		if (strcmp(tsp_cloud, current_cloud) == 0)
@@ -275,7 +275,7 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 		}
 
 		/* check if this placement is leader-preferred: skip it if it's not */
-		text *pref = json_get_denormalized_value(json_element, keys[4]);
+		text *pref = json_get_denormalized_value(json_element, leaderPrefKey);
 		if (pref != NULL && atoi(text_to_cstring(pref)) == 1)
 		{
 			if (leader_pref_exists)
