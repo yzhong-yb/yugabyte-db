@@ -1972,8 +1972,11 @@ agg_retrieve_direct(AggState *aggstate)
 				/* Turn off this assert because avg now breaks this invariant */
 				//Assert(aggstate->numaggs == outerslot->tts_nvalid);
 
+				/*
+				 * Each avg is responsible for two values, so use an offset
+				 * counter to keep everything in line.
+				 */
 				int offset = 0;
-
 				for (aggno = 0; aggno < aggstate->numaggs; aggno++)
 				{
 					MemoryContext oldContext;
@@ -1984,6 +1987,8 @@ agg_retrieve_direct(AggState *aggstate)
 					AggStatePerGroup pergroupstate = &pergroup[transno];
 					AggStatePerTrans pertrans = &aggstate->pertrans[transno];
 					FunctionCallInfo fcinfo = &pertrans->transfn_fcinfo;
+
+					Assert(aggno+offset < outerslot->tts_nvalid);
 					Datum value = outerslot->tts_values[aggno+offset];
 					bool isnull = outerslot->tts_isnull[aggno+offset];
 
@@ -2001,6 +2006,7 @@ agg_retrieve_direct(AggState *aggstate)
 					else if (strcmp(func_name, "avg") == 0)
 					{
 						++offset;
+						Assert(aggno+offset < outerslot->tts_nvalid);
 						Datum value2 = outerslot->tts_values[aggno+offset];
 
 						oldContext = MemoryContextSwitchTo(
