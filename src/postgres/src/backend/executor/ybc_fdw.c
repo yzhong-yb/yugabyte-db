@@ -516,6 +516,7 @@ ybcSetupScanTargets(ForeignScanState *node)
 	else
 	{
 		/* Set aggregate scan targets. */
+		int len = 0;
 		foreach(lc, node->yb_fdw_aggs)
 		{
 			Aggref *aggref = lfirst_node(Aggref, lc);
@@ -533,10 +534,12 @@ ybcSetupScanTargets(ForeignScanState *node)
 
 				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, "sum", type_entity, aggref->aggcollid);
 				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, "count", type_entity, aggref->aggcollid);
+				len += 2;
 			}
 			else
 			{
 				ybcSetupOnePushdownAggTarget(node, aggref->aggstar, aggref->args, func_name, type_entity, aggref->aggcollid);
+				++len;
 			}
 		}
 
@@ -544,7 +547,7 @@ ybcSetupScanTargets(ForeignScanState *node)
 		 * Setup the scan slot based on new tuple descriptor for the given targets. This is a dummy
 		 * tupledesc that only includes the number of attributes.
 		 */
-		TupleDesc target_tupdesc = CreateTemplateTupleDesc(list_length(node->yb_fdw_aggs),
+		TupleDesc target_tupdesc = CreateTemplateTupleDesc(len,
 														   false /* hasoid */);
 		ExecInitScanTupleSlot(estate, &node->ss, target_tupdesc);
 

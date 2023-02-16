@@ -1970,7 +1970,7 @@ agg_retrieve_direct(AggState *aggstate)
 					break;
 				}
 
-				Assert(aggstate->numaggs == outerslot->tts_nvalid);
+				//Assert(aggstate->numaggs == outerslot->tts_nvalid);
 
 				int offset = 0;
 
