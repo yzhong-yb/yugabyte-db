@@ -5568,8 +5568,6 @@ int8_avg(PG_FUNCTION_ARGS)
 	sumd = DirectFunctionCall1(int8_numeric,
 							   Int64GetDatumFast(transdata->sum));
 
-	//elog(WARNING, "count: %lu, sum: %lu", Int64GetDatumFast(transdata->count), Int64GetDatumFast(transdata->sum));
-
 	PG_RETURN_DATUM(DirectFunctionCall2(numeric_div, sumd, countd));
 }
 

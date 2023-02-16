@@ -1606,17 +1606,16 @@ yb_agg_pushdown_supported(AggState *aggstate)
 		/* Simple split. */
 		if (aggref->aggsplit != AGGSPLIT_SIMPLE)
 			return;
-		//elog(WARNING, "%d", aggref->aggtranstype);
-		/* Aggtranstype is a supported YB key type and is not INTERNAL or NUMERIC. */
 
+		/* avg is a special case */
 		if (!(strcmp(func_name, "avg") == 0 && aggref->aggtranstype == INT8ARRAYOID))
 		{
+			/* Aggtranstype is a supported YB key type and is not INTERNAL or NUMERIC. */
 			if (!YbDataTypeIsValidForKey(aggref->aggtranstype) ||
 				aggref->aggtranstype == INTERNALOID ||
 				aggref->aggtranstype == NUMERICOID)
 				return;
 		}
-		//elog(WARNING, "yzhong test 3");
 
 		/*
 		 * The builtin functions max and min imply comparison. Character type
@@ -1970,13 +1969,13 @@ agg_retrieve_direct(AggState *aggstate)
 					break;
 				}
 
+				/* Turn off this assert because avg now breaks this invariant */
 				//Assert(aggstate->numaggs == outerslot->tts_nvalid);
 
 				int offset = 0;
 
 				for (aggno = 0; aggno < aggstate->numaggs; aggno++)
 				{
-					//elog(WARNING, "aggno: %d", aggno);
 					MemoryContext oldContext;
 					int transno = peragg[aggno].transno;
 					Aggref *aggref = aggstate->peragg[aggno].aggref;
@@ -1986,7 +1985,6 @@ agg_retrieve_direct(AggState *aggstate)
 					AggStatePerTrans pertrans = &aggstate->pertrans[transno];
 					FunctionCallInfo fcinfo = &pertrans->transfn_fcinfo;
 					Datum value = outerslot->tts_values[aggno+offset];
-					//elog(WARNING, "func_name: %s, value: %lu", func_name, value);
 					bool isnull = outerslot->tts_isnull[aggno+offset];
 
 					if (strcmp(func_name, "count") == 0)
@@ -2004,7 +2002,6 @@ agg_retrieve_direct(AggState *aggstate)
 					{
 						++offset;
 						Datum value2 = outerslot->tts_values[aggno+offset];
-						//elog(WARNING, "avg: next value: %lu", value2);
 
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
@@ -2786,14 +2783,6 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 
 	/* Internally set whether plan supports YB agg pushdown. */
 	yb_agg_pushdown_supported(aggstate);
-	if (aggstate->yb_pushdown_supported)
-	{
-		//elog(WARNING, "supported");
-	}
-	else
-	{
-		//elog(WARNING, "not supported");
-	}
 
 	/* -----------------
 	 * Perform lookups of aggregate function info, and initialize the

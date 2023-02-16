@@ -523,8 +523,6 @@ ybcSetupScanTargets(ForeignScanState *node)
 			char *func_name = get_func_name(aggref->aggfnoid);
 			const YBCPgTypeEntity *type_entity;
 
-			//elog(WARNING, "agg type %s", func_name);
-
 			/* Get type entity for the operator from the aggref. */
 			type_entity = YbDataTypeFromOidMod(InvalidAttrNumber, aggref->aggtranstype);
 
