@@ -435,6 +435,35 @@ DROP TABLESPACE region_pref;
 DROP TABLESPACE cloud_pref;
 DROP TABLESPACE far_pref;
 
+/*
+Testing that a tablespace with leader preference is preferred over one with
+no leader preferences, when they have the same placements.
+*/
+
+CREATE TABLE foo(x int, y int);
+
+CREATE TABLESPACE no_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE TABLESPACE has_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE UNIQUE INDEX no_pref_ind ON foo(x) INCLUDE (y) TABLESPACE no_pref;
+CREATE UNIQUE INDEX has_pref_ind ON foo(x) INCLUDE (y) TABLESPACE has_pref;
+
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+
+DROP TABLE foo;
+DROP TABLESPACE no_pref;
+DROP TABLESPACE has_pref;
 
 /*
 Testing that more specific leader-preferenced placements are preferred over
@@ -489,3 +518,34 @@ DROP TABLESPACE all_pref;
 DROP TABLESPACE most_pref;
 DROP TABLESPACE some_pref;
 DROP TABLESPACE few_pref;
+
+/*
+Testing that a tablespace with leader preference on a close and far placement is NOT
+preferred over a tablespace with leader preference on just a medium-distance placement.
+
+We estimate based on the worst case, which means that having a far leader-preferred placement
+leads to a large cost.
+*/
+CREATE TABLE foo(x int, y int);
+
+CREATE TABLESPACE close_far_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE TABLESPACE medium_pref
+  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
+    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1,"leader_preference":1},
+    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
+    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
+
+CREATE UNIQUE INDEX close_far_pref_ind ON foo(x) INCLUDE (y) TABLESPACE close_far_pref;
+CREATE UNIQUE INDEX medium_pref_ind ON foo(x) INCLUDE (y) TABLESPACE medium_pref;
+
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+DROP TABLE foo;
+DROP TABLESPACE close_far_pref;
+DROP TABLESPACE medium_pref;
