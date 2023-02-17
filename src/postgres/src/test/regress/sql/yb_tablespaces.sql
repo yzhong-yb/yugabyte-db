@@ -409,13 +409,6 @@ CREATE TABLESPACE cloud_pref
     {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1,"leader_preference":1},
     {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1}]}');
 
-CREATE TABLESPACE far_pref
-  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
-    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1},
-    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1},
-    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1},
-    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1,"leader_preference":1}]}');
-
 CREATE UNIQUE INDEX zone_pref_ind ON foo(x) INCLUDE (y) TABLESPACE zone_pref;
 CREATE UNIQUE INDEX region_pref_ind ON foo(x) INCLUDE (y) TABLESPACE region_pref;
 CREATE UNIQUE INDEX cloud_pref_ind ON foo(x) INCLUDE (y) TABLESPACE cloud_pref;
@@ -433,7 +426,6 @@ DROP TABLE foo;
 DROP TABLESPACE zone_pref;
 DROP TABLESPACE region_pref;
 DROP TABLESPACE cloud_pref;
-DROP TABLESPACE far_pref;
 
 /*
 Testing that a tablespace with leader preference is preferred over one with
@@ -472,13 +464,6 @@ less specific ones.
 
 CREATE TABLE foo(x int, y int);
 
-CREATE TABLESPACE all_pref
-  WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
-    {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1,"leader_preference":1},
-    {"cloud":"cloud1","region":"region1","zone":"zone2","min_num_replicas":1,"leader_preference":1},
-    {"cloud":"cloud1","region":"region2","zone":"zone1","min_num_replicas":1,"leader_preference":1},
-    {"cloud":"cloud2","region":"region2","zone":"zone2","min_num_replicas":1,"leader_preference":1}]}');
-
 CREATE TABLESPACE most_pref
   WITH (replica_placement='{"num_replicas": 4, "placement_blocks": [
     {"cloud":"cloud1","region":"region1","zone":"zone1","min_num_replicas":1,"leader_preference":1},
@@ -514,7 +499,6 @@ EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
 DROP INDEX most_pref_ind;
 
 DROP TABLE foo;
-DROP TABLESPACE all_pref;
 DROP TABLESPACE most_pref;
 DROP TABLESPACE some_pref;
 DROP TABLESPACE few_pref;
