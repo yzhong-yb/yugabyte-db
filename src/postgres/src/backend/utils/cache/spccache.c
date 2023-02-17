@@ -238,15 +238,23 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 
 	for (size_t i = 0; i < length; i++)
 	{
-		GeolocationDistance current_dist;
 		text *json_element = get_json_array_element(placement_array, i);
 
+		text *pref = json_get_denormalized_value(json_element, leaderPrefKey);
+		bool preferred = (pref != NULL) && (atoi(text_to_cstring(pref)) == 1);
+
+		/* if we've seen a preferred placement, skip all non-preferred ones */
+		if (!preferred && leader_pref_exists)
+			continue;
+
+		GeolocationDistance current_dist;
 		const char *tsp_cloud = text_to_cstring(
 			json_get_denormalized_value(json_element, cloudKey));
 		const char *tsp_region = text_to_cstring(
 			json_get_denormalized_value(json_element, regionKey));
 		const char *tsp_zone = text_to_cstring(
 			json_get_denormalized_value(json_element, zoneKey));
+
 
 		/* are the current cloud and the given cloud the same */
 		if (strcmp(tsp_cloud, current_cloud) == 0)
@@ -274,21 +282,16 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 			current_dist = INTER_CLOUD;
 		}
 
-		/* check if this placement is leader-preferred: skip it if it's not */
-		text *pref = json_get_denormalized_value(json_element, leaderPrefKey);
-		if (pref != NULL && atoi(text_to_cstring(pref)) == 1)
+		/*
+		 * if this is the first preferred placement we find,
+		 * disregard all previous placements
+		 */
+		if (preferred && !leader_pref_exists)
 		{
-			if (leader_pref_exists)
-			{
-				farthest = current_dist > farthest ? current_dist : farthest;
-			}
-			else
-			{
-				leader_pref_exists = true;
-				farthest = current_dist;
-			}
+			leader_pref_exists = true;
+			farthest = current_dist;
 		}
-		else if (!leader_pref_exists)
+		else
 		{
 			farthest = current_dist > farthest ? current_dist : farthest;
 		}
