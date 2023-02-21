@@ -1973,10 +1973,11 @@ agg_retrieve_direct(AggState *aggstate)
 				//Assert(aggstate->numaggs == outerslot->tts_nvalid);
 
 				/*
-				 * Each avg is responsible for two values, so use an offset
-				 * counter to keep everything in line.
+				 * Each avg is responsible for two values, so the
+				 * index into the input values is no longer aligned
+				 * with aggno. So, we keep track of it separately
 				 */
-				int offset = 0;
+				int valno = 0;
 				for (aggno = 0; aggno < aggstate->numaggs; aggno++)
 				{
 					MemoryContext oldContext;
@@ -1988,9 +1989,9 @@ agg_retrieve_direct(AggState *aggstate)
 					AggStatePerTrans pertrans = &aggstate->pertrans[transno];
 					FunctionCallInfo fcinfo = &pertrans->transfn_fcinfo;
 
-					Assert(aggno+offset < outerslot->tts_nvalid);
-					Datum value = outerslot->tts_values[aggno+offset];
-					bool isnull = outerslot->tts_isnull[aggno+offset];
+					Assert(valno < outerslot->tts_nvalid);
+					Datum value = outerslot->tts_values[valno];
+					bool isnull = outerslot->tts_isnull[valno];
 
 					if (strcmp(func_name, "count") == 0)
 					{
@@ -2005,9 +2006,9 @@ agg_retrieve_direct(AggState *aggstate)
 					}
 					else if (strcmp(func_name, "avg") == 0)
 					{
-						++offset;
-						Assert(aggno+offset < outerslot->tts_nvalid);
-						Datum value2 = outerslot->tts_values[aggno+offset];
+						++valno;
+						Assert(valno < outerslot->tts_nvalid);
+						Datum value2 = outerslot->tts_values[valno];
 
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
@@ -2029,6 +2030,7 @@ agg_retrieve_direct(AggState *aggstate)
 						fcinfo->argnull[1] = isnull;
 						advance_transition_function(aggstate, pertrans, pergroupstate);
 					}
+					++valno;
 				}
 
 				/* Reset per-input-tuple context after each tuple */
