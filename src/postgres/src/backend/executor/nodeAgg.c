@@ -2009,19 +2009,30 @@ agg_retrieve_direct(AggState *aggstate)
 						++valno;
 						Assert(valno < outerslot->tts_nvalid);
 						Datum value2 = outerslot->tts_values[valno];
+						bool isnull2 = outerslot->tts_isnull[valno];
+						//yzhong note: seems like isnull == isnull2 always
+
+						if (isnull || isnull2)
+						{
+							continue;
+						}
 
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
 						
 						Int8TransTypeData *transdata;
 						ArrayType *transarray = (ArrayType *)(pergroupstate->transValue);
+
+						if (ARR_HASNULL(transarray) ||
+							ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+							elog(ERROR, "expected 2-element int8 array");
+
 						transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
 
 						transdata->sum += value;
 						transdata->count += value2;
 
 						MemoryContextSwitchTo(oldContext);
-
 					}
 					else
 					{
