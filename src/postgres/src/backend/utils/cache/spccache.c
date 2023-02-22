@@ -221,8 +221,12 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 	text *placement_array = json_get_value(tsp_options_json,
 											"placement_blocks");
 	const int length = get_json_array_length(placement_array);
-	char *cloudKey = "cloud", *regionKey = "region",
-		*zoneKey = "zone", *leaderPrefKey = "leader_preference";
+
+	static char *cloudKey = "cloud";
+	static char *regionKey = "region";
+	static char *zoneKey = "zone";
+	static char *leaderPrefKey = "leader_preference";
+
 	const char *current_cloud = YBGetCurrentCloud();
 	const char *current_region = YBGetCurrentRegion();
 	const char *current_zone = YBGetCurrentZone();
