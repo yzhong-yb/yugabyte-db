@@ -25,6 +25,7 @@
 
 #include "yb/rpc/outbound_call.h"
 
+#include "yb/util/debug-util.h"
 #include "yb/util/random_util.h"
 #include "yb/util/status_format.h"
 #include "yb/util/status_log.h"
@@ -1222,8 +1223,8 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
     limit = predicted_limit;
     suppress_next_result_prefetching_ = false;
   }
-  VLOG(3) << __func__
-          << " exec_params_.limit_count=" << exec_params_.limit_count
+  LOG(INFO) << __func__
+          << " yzhong test exec_params_.limit_count=" << exec_params_.limit_count
           << " exec_params_.limit_offset=" << exec_params_.limit_offset
           << " exec_params_.limit_use_default=" << exec_params_.limit_use_default
           << " predicted_limit=" << predicted_limit

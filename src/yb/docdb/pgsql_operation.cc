@@ -1279,6 +1279,7 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
   size_t fetched_rows = 0;
   // Requests normally have a limit on how many rows to return
   size_t row_count_limit = std::numeric_limits<std::size_t>::max();
+  // yzhong note: row_count_limit uses request_.limit() here
   if (request_.has_limit()) {
     if (request_.limit() == 0) {
       return fetched_rows;

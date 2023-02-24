@@ -198,6 +198,7 @@ CreateExecutorState(void)
 
 	estate->yb_exec_params.yb_prefetch_limit = yb_prefetch_limit;
 	estate->yb_exec_params.yb_docdb_response_size_kb = yb_docdb_response_size_kb;
+	elog(WARNING, "yzhong create executor state");
 
 	return estate;
 }

@@ -161,6 +161,7 @@ ExecScan(ScanState *node,
 	// yzhong: add the fetch limit overrides here
 	if (qual)
 	{
+		elog(WARNING, "yzhong limit use default true qual");
 		node->ps.state->yb_exec_params.limit_use_default = true;
 	}
 

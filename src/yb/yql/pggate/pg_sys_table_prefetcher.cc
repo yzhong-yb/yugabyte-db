@@ -236,6 +236,8 @@ void AddTargetColumn(LWPgsqlReadRequestPB* req, const PgColumn& column) {
 void SetupPaging(LWPgsqlReadRequestPB* req) {
   req->set_return_paging_state(true);
   req->set_is_forward_scan(true);
+  // yzhong note: happens when the node is starting up?
+  LOG(INFO) << "yzhong test: setuppaging";
   req->set_limit(yb_prefetch_limit);
 }
 

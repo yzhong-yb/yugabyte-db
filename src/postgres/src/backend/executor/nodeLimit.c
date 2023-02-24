@@ -99,6 +99,7 @@ ExecLimit(PlanState *pstate)
 			 * use the default limit in yb. Otherwise, we don't use the default
 			 * yb limit and use the one prescribed by this node.
 			 */
+			elog(WARNING, "yzhong limit use default rescan %d", node->noCount);
 			pstate->state->yb_exec_params.limit_use_default = node->noCount;
 
 			/*
@@ -395,6 +396,7 @@ recompute_limits(LimitState *node)
 		if (isNull)
 		{
 			node->count = 0;
+			elog(WARNING, "yzhong nocount 1");
 			node->noCount = true;
 		}
 		else
@@ -410,6 +412,7 @@ recompute_limits(LimitState *node)
 	else
 	{
 		/* No COUNT supplied */
+		elog(WARNING, "yzhong nocount 2");
 		node->count = 0;
 		node->noCount = true;
 	}

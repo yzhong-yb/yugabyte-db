@@ -2549,6 +2549,7 @@ eval_const_expressions(PlannerInfo *root, Node *node)
 	context.active_fns = NIL;	/* nothing being recursively simplified */
 	context.case_val = NULL;	/* no CASE being examined */
 	context.estimate = false;	/* safe transformations only */
+	elog(WARNING, "yzhong eval_const_expressions");
 	return eval_const_expressions_mutator(node, &context);
 }
 
@@ -2757,6 +2758,7 @@ eval_const_expressions_mutator(Node *node,
 				 * length coercion; we want to preserve the typmod in the
 				 * eventual Const if so.
 				 */
+				elog(WARNING, "yzhong T_FuncExpr");
 				simple = simplify_function(expr->funcid,
 										   expr->funcresulttype,
 										   exprTypmod(node),
@@ -2767,6 +2769,8 @@ eval_const_expressions_mutator(Node *node,
 										   true,
 										   true,
 										   context);
+				if (simple)
+					elog(WARNING, "yzhong simple");
 				if (simple)		/* successfully simplified it */
 					return (Node *) simple;
 
@@ -3162,7 +3166,6 @@ eval_const_expressions_mutator(Node *node,
 												Int32GetDatum(-1),
 												false,
 												true));
-
 					simple = simplify_function(infunc,
 											   expr->resulttype, -1,
 											   expr->resultcollid,
@@ -4527,6 +4530,8 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
 	newexpr->args = args;
 	newexpr->location = -1;
 
+	elog(WARNING, "yzhong evaluate_function");
+
 	return evaluate_expr((Expr *) newexpr, result_type, result_typmod,
 						 result_collid);
 }
@@ -4963,6 +4968,7 @@ evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod,
 	/*
 	 * To use the executor, we need an EState.
 	 */
+	elog(WARNING, "yzhong evaluate_expr");
 	estate = CreateExecutorState();
 
 	/* We can use the estate's working context to avoid memory leaks. */
@@ -5013,6 +5019,8 @@ evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod,
 
 	/* Release all the junk we just created */
 	FreeExecutorState(estate);
+
+	elog(WARNING, "yzhong const_val %d", (int) const_val);
 
 	/*
 	 * Make the constant result node.

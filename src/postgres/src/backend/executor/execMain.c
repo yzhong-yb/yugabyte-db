@@ -170,6 +170,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	/*
 	 * Build EState, switch into per-query memory context for startup.
 	 */
+	elog(WARNING, "yzhong executor start");
 	estate = CreateExecutorState();
 	queryDesc->estate = estate;
 

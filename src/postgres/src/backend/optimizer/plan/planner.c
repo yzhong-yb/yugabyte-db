@@ -780,8 +780,10 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 
 	parse->limitOffset = preprocess_expression(root, parse->limitOffset,
 											   EXPRKIND_LIMIT);
+	elog(WARNING, "yzhong subquery_planner limit count");
 	parse->limitCount = preprocess_expression(root, parse->limitCount,
 											  EXPRKIND_LIMIT);
+	elog(WARNING, "yzhong subquery_planner limit count done");
 
 	if (parse->onConflict)
 	{
@@ -1056,6 +1058,7 @@ preprocess_expression(PlannerInfo *root, Node *expr, int kind)
 	 * careful to maintain AND/OR flatness --- that is, do not generate a tree
 	 * with AND directly under AND, nor OR directly under OR.
 	 */
+	elog(WARNING, "yzhong preprocess_expression");
 	expr = eval_const_expressions(root, expr);
 
 	/*
