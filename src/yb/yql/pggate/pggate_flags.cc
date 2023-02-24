@@ -43,7 +43,7 @@ DEFINE_UNKNOWN_int32(ysql_request_limit, 1024,
              "Maximum number of requests to be sent at once");
 
 DEFINE_UNKNOWN_uint64(ysql_prefetch_limit, 1024,
-              "Maximum number of rows to prefetch");
+              "DEPRECATED. Feature has been removed.");
 
 DEPRECATE_FLAG(double, ysql_backward_prefetch_scale_factor, "11_2022");
 

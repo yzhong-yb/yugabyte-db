@@ -172,6 +172,8 @@ DEFINE_RUNTIME_AUTO_PG_FLAG(bool, yb_enable_sequence_pushdown, kLocalVolatile, f
     "Allow nextval() to fetch the value range and advance the sequence value "
     "in a single operation");
 
+DEFINE_RUNTIME_PG_FLAG(uint64, yb_prefetch_limit, 1024, "Maximum number of rows to prefetch");
+
 static bool ValidateXclusterConsistencyLevel(const char* flagname, const std::string& value) {
   if (value != "database" && value != "tablet") {
     fprintf(
