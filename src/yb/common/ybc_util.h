@@ -99,6 +99,11 @@ extern bool yb_enable_hash_batch_in;
  */
 extern int yb_xcluster_consistency_level;
 
+/*
+ * Allows for customizing the number of rows to be prefetched.
+ */
+extern int yb_prefetch_limit;
+
 typedef struct YBCStatusStruct* YBCStatus;
 
 bool YBCStatusIsNotFound(YBCStatus s);

@@ -180,6 +180,8 @@ DEFINE_RUNTIME_PG_FLAG(bool, yb_disable_wait_for_backends_catalog_version, false
     " Although it is runtime-settable, the effects won't take place for any in-progress"
     " queries.");
 
+DEFINE_RUNTIME_PG_FLAG(uint64, yb_prefetch_limit, 1024, "Maximum number of rows to prefetch");
+
 static bool ValidateXclusterConsistencyLevel(const char* flagname, const std::string& value) {
   if (value != "database" && value != "tablet") {
     fprintf(

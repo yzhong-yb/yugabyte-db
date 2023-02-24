@@ -1207,7 +1207,7 @@ Status PgDocReadOp::CompleteProcessResponse() {
 void PgDocReadOp::SetRequestPrefetchLimit() {
   // Predict the maximum prefetch-limit using the associated gflags.
   auto& req = read_op_->read_request();
-  auto predicted_limit = FLAGS_ysql_prefetch_limit;
+  uint64_t predicted_limit = exec_params_.yb_prefetch_limit;
 
   // System setting has to be at least 1 while user setting (LIMIT clause) can be anything that
   // is allowed by SQL semantics.
