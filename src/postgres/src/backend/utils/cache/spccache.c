@@ -246,7 +246,10 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 		text *pref = json_get_denormalized_value(json_element, leaderPrefKey);
 		bool preferred = (pref != NULL) && (atoi(text_to_cstring(pref)) == 1);
 
-		/* YB: If we've seen a preferred placement, skip all non-preferred ones. */
+		/*
+		 * YB: If we've seen a preferred placement,
+		 * skip all non-preferred ones.
+		 */
 		if (!preferred && leader_pref_exists)
 			continue;
 
