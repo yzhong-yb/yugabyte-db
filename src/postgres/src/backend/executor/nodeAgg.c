@@ -1711,8 +1711,34 @@ yb_agg_pushdown(AggState *aggstate)
 	for (aggno = 0; aggno < aggstate->numaggs; aggno++)
 	{
 		Aggref *aggref = aggstate->peragg[aggno].aggref;
+		const char *func_name = get_func_name(aggref->aggfnoid);
 
-		pushdown_aggs = lappend(pushdown_aggs, aggref);
+		if (strcmp(func_name, "avg") == 0)
+		{
+			Aggref *count_aggref = palloc0(sizeof(Aggref));
+			Aggref *sum_aggref = palloc0(sizeof(Aggref));
+
+			count_aggref->aggcollid = aggref->aggcollid;
+			count_aggref->aggfnoid = 2147;
+			count_aggref->aggstar = aggref->aggstar;
+			count_aggref->args = aggref->args;
+			count_aggref->aggtranstype = INT8OID;
+			count_aggref->xpr.type = aggref->xpr.type;
+
+			sum_aggref->aggcollid = aggref->aggcollid;
+			sum_aggref->aggfnoid = 2108;
+			sum_aggref->aggstar = aggref->aggstar;
+			sum_aggref->args = aggref->args;
+			sum_aggref->aggtranstype = INT8OID;
+			sum_aggref->xpr.type = aggref->xpr.type;
+
+			pushdown_aggs = lappend(pushdown_aggs, sum_aggref);
+			pushdown_aggs = lappend(pushdown_aggs, count_aggref);
+		}
+		else
+		{
+			pushdown_aggs = lappend(pushdown_aggs, aggref);
+		}
 	}
 	scan_state->yb_fdw_aggs = pushdown_aggs;
 	/* Disable projection for tuples produced by pushed down aggregate operators. */
@@ -2019,7 +2045,7 @@ agg_retrieve_direct(AggState *aggstate)
 
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
-						
+
 						Int8TransTypeData *transdata;
 						ArrayType *transarray = (ArrayType *)(pergroupstate->transValue);
 
