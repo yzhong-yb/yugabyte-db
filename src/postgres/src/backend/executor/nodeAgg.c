@@ -1715,22 +1715,20 @@ yb_agg_pushdown(AggState *aggstate)
 
 		if (strcmp(func_name, "avg") == 0)
 		{
-			Aggref *count_aggref = palloc0(sizeof(Aggref));
-			Aggref *sum_aggref = palloc0(sizeof(Aggref));
+			Aggref *count_aggref = makeNode(Aggref);
+			Aggref *sum_aggref = makeNode(Aggref);
 
-			count_aggref->aggcollid = aggref->aggcollid;
 			count_aggref->aggfnoid = 2147;
+			count_aggref->aggtranstype = INT8OID;
+			count_aggref->aggcollid = aggref->aggcollid;
 			count_aggref->aggstar = aggref->aggstar;
 			count_aggref->args = aggref->args;
-			count_aggref->aggtranstype = INT8OID;
-			count_aggref->xpr.type = aggref->xpr.type;
 
-			sum_aggref->aggcollid = aggref->aggcollid;
 			sum_aggref->aggfnoid = 2108;
+			sum_aggref->aggtranstype = INT8OID;
+			sum_aggref->aggcollid = aggref->aggcollid;
 			sum_aggref->aggstar = aggref->aggstar;
 			sum_aggref->args = aggref->args;
-			sum_aggref->aggtranstype = INT8OID;
-			sum_aggref->xpr.type = aggref->xpr.type;
 
 			pushdown_aggs = lappend(pushdown_aggs, sum_aggref);
 			pushdown_aggs = lappend(pushdown_aggs, count_aggref);
@@ -2034,14 +2032,11 @@ agg_retrieve_direct(AggState *aggstate)
 					{
 						++valno;
 						Assert(valno < outerslot->tts_nvalid);
-						Datum value2 = outerslot->tts_values[valno];
-						bool isnull2 = outerslot->tts_isnull[valno];
-						//yzhong note: seems like isnull == isnull2 always
+						Datum count_value = outerslot->tts_values[valno];
+						bool count_isnull = outerslot->tts_isnull[valno];
 
-						if (isnull || isnull2)
-						{
+						if (isnull || count_isnull)
 							continue;
-						}
 
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
@@ -2050,13 +2045,14 @@ agg_retrieve_direct(AggState *aggstate)
 						ArrayType *transarray = (ArrayType *)(pergroupstate->transValue);
 
 						if (ARR_HASNULL(transarray) ||
-							ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) + sizeof(Int8TransTypeData))
+							ARR_SIZE(transarray) != ARR_OVERHEAD_NONULLS(1) +
+							sizeof(Int8TransTypeData))
 							elog(ERROR, "expected 2-element int8 array");
 
 						transdata = (Int8TransTypeData *) ARR_DATA_PTR(transarray);
 
 						transdata->sum += value;
-						transdata->count += value2;
+						transdata->count += count_value;
 
 						MemoryContextSwitchTo(oldContext);
 					}
