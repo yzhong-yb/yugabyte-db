@@ -236,6 +236,7 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/numeric.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/tuplesort.h"
@@ -1800,12 +1801,6 @@ ExecAgg(PlanState *pstate)
 
 	return NULL;
 }
-
-typedef struct Int8TransTypeData
-{
-	int64		count;
-	int64		sum;
-} Int8TransTypeData;
 
 /*
  * ExecAgg for non-hashed case
