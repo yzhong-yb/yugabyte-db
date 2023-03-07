@@ -414,6 +414,9 @@ CREATE UNIQUE INDEX region_pref_ind ON foo(x) INCLUDE (y) TABLESPACE region_pref
 CREATE UNIQUE INDEX cloud_pref_ind ON foo(x) INCLUDE (y) TABLESPACE cloud_pref;
 
 EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+SET yb_enable_geolocation_costing = off;
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+SET yb_enable_geolocation_costing = on;
 DROP INDEX zone_pref_ind;
 
 EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;

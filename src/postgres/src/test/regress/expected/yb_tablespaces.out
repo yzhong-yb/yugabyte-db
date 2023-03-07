@@ -660,6 +660,15 @@ EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
    Index Cond: (x = 5)
 (2 rows)
 
+SET yb_enable_geolocation_costing = off;
+EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
+                 QUERY PLAN
+---------------------------------------------
+ Index Only Scan using cloud_pref_ind on foo
+   Index Cond: (x = 5)
+(2 rows)
+
+SET yb_enable_geolocation_costing = on;
 DROP INDEX zone_pref_ind;
 EXPLAIN (COSTS OFF) SELECT * FROM foo WHERE x = 5;
                   QUERY PLAN
