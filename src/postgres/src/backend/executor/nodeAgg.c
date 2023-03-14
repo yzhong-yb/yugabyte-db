@@ -1608,13 +1608,18 @@ yb_agg_pushdown_supported(AggState *aggstate)
 		if (aggref->aggsplit != AGGSPLIT_SIMPLE)
 			return;
 
-		/* avg is a special case */
-		if (!(strcmp(func_name, "avg") == 0 && aggref->aggtranstype == INT8ARRAYOID))
+
+		/* Aggtranstype is a supported YB key type and is not INTERNAL or NUMERIC. */
+		if (!YbDataTypeIsValidForKey(aggref->aggtranstype) ||
+			aggref->aggtranstype == INTERNALOID ||
+			aggref->aggtranstype == NUMERICOID)
 		{
-			/* Aggtranstype is a supported YB key type and is not INTERNAL or NUMERIC. */
-			if (!YbDataTypeIsValidForKey(aggref->aggtranstype) ||
-				aggref->aggtranstype == INTERNALOID ||
-				aggref->aggtranstype == NUMERICOID)
+			/*
+			 * However, AVG with INT8ARRAYOID is a special case
+			 * that we support.
+			 */
+			if (!(strcmp(func_name, "avg") == 0 &&
+				aggref->aggtranstype == INT8ARRAYOID))
 				return;
 		}
 
@@ -1978,6 +1983,9 @@ agg_retrieve_direct(AggState *aggstate)
 			 *
 			 * We special case for COUNT and sum values so it returns the proper count
 			 * aggregated across all responses.
+			 *
+			 * We also special case AVG, which is pushed down as two values:
+			 * a count and a sum.
 			 */
 			for (;;)
 			{
@@ -1988,15 +1996,13 @@ agg_retrieve_direct(AggState *aggstate)
 					break;
 				}
 
-				/* Turn off this assert because avg now breaks this invariant */
-				//Assert(aggstate->numaggs == outerslot->tts_nvalid);
-
 				/*
-				 * Each avg is responsible for two values, so the
+				 * Each AVG is responsible for two values, so the
 				 * index into the input values is no longer aligned
 				 * with aggno. So, we keep track of it separately
 				 */
 				int valno = 0;
+
 				for (aggno = 0; aggno < aggstate->numaggs; aggno++)
 				{
 					MemoryContext oldContext;
@@ -2033,9 +2039,14 @@ agg_retrieve_direct(AggState *aggstate)
 						if (isnull || count_isnull)
 							continue;
 
+						/*
+						 * Like COUNT, add the sum and count values directly.
+						 * The datum is guaranteed to be an Int8TransTypeData.
+						 * The checking code is taken from int8_avg()
+						 * in numeric.c.
+						 */
 						oldContext = MemoryContextSwitchTo(
 							aggstate->curaggcontext->ecxt_per_tuple_memory);
-
 						Int8TransTypeData *transdata;
 						ArrayType *transarray = (ArrayType *)(pergroupstate->transValue);
 
