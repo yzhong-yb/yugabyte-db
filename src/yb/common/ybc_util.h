@@ -104,6 +104,8 @@ extern int yb_xcluster_consistency_level;
  */
 extern int yb_prefetch_limit;
 
+extern int yb_docdb_response_size_kb;
+
 typedef struct YBCStatusStruct* YBCStatus;
 
 bool YBCStatusIsNotFound(YBCStatus s);

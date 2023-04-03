@@ -299,6 +299,7 @@ typedef struct PgExecParameters {
   bool is_select_distinct = false;
   int work_mem = 4096; // Default work_mem in guc.c
   int yb_prefetch_limit = 0;
+  int yb_docdb_response_size_kb = 0;
 #else
   uint64_t limit_count;
   uint64_t limit_offset;
@@ -314,6 +315,7 @@ typedef struct PgExecParameters {
   bool is_select_distinct;
   int work_mem;
   int yb_prefetch_limit;
+  int yb_docdb_response_size_kb;
 #endif
 } YBCPgExecParameters;
 

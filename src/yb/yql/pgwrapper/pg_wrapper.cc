@@ -174,6 +174,8 @@ DEFINE_RUNTIME_AUTO_PG_FLAG(bool, yb_enable_sequence_pushdown, kLocalVolatile, f
 
 DEFINE_RUNTIME_PG_FLAG(uint64, yb_prefetch_limit, 1024, "Maximum number of rows to prefetch");
 
+DEFINE_RUNTIME_PG_FLAG(uint64, yb_docdb_response_size_kb, 1024, "Maximum size of fetch response");
+
 static bool ValidateXclusterConsistencyLevel(const char* flagname, const std::string& value) {
   if (value != "database" && value != "tablet") {
     fprintf(

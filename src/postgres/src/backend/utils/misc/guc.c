@@ -3572,6 +3572,17 @@ static struct config_int ConfigureNamesInt[] =
 		NULL, NULL, NULL
 	},
 
+	{
+		{"yb_docdb_response_size_kb", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Maximum size of a fetch response. Override the "
+									 "limit specified by the gflags."),
+			NULL
+		},
+		&yb_docdb_response_size_kb,
+		1024, 1, INT_MAX,
+		NULL, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, 0, 0, 0, NULL, NULL, NULL
