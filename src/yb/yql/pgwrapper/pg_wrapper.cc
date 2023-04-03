@@ -182,6 +182,8 @@ DEFINE_RUNTIME_PG_FLAG(bool, yb_disable_wait_for_backends_catalog_version, false
 
 DEFINE_RUNTIME_PG_FLAG(uint64, yb_prefetch_limit, 1024, "Maximum number of rows to prefetch");
 
+DEFINE_RUNTIME_PG_FLAG(uint64, yb_docdb_response_size_kb, 1024, "Maximum size of fetch response");
+
 static bool ValidateXclusterConsistencyLevel(const char* flagname, const std::string& value) {
   if (value != "database" && value != "tablet") {
     fprintf(

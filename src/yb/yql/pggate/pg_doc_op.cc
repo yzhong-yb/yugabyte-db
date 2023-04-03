@@ -1229,6 +1229,7 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
           << " predicted_limit=" << predicted_limit
           << " limit=" << limit;
   req.set_limit(limit);
+  req.set_size_limit(exec_params_.yb_docdb_response_size_kb);
 }
 
 void PgDocReadOp::SetRowMark() {

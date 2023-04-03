@@ -26,6 +26,7 @@
 #include "yb/common/pgsql_error.h"
 #include "yb/common/ql_value.h"
 #include "yb/common/row_mark.h"
+#include "yb/common/ybc_util.h"
 
 #include "yb/docdb/doc_pg_expr.h"
 #include "yb/docdb/doc_pgsql_scanspec.h"
@@ -1300,6 +1301,21 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
     row_count_limit = request_.limit();
   }
 
+  size_t response_size_limit = std::numeric_limits<std::size_t>::max();
+  bool has_response_size_limit = false;
+
+  if (request_.has_size_limit()) {
+    response_size_limit = request_.size_limit() * 1_KB;
+    has_response_size_limit = true;
+  }
+
+  VLOG(4) << "Computed min row count limit: " << row_count_limit
+          << ", size limit: " << response_size_limit
+          << ", Request limit: " << (request_.has_limit() ? request_.limit() : -1)
+          << ", has_response_size_limit: " << has_response_size_limit;
+
+  //LOG(INFO) << "yzhong test row_count_limit " << row_count_limit;
+
   // Create the projection of regular columns selected by the row block plus any referenced in
   // the WHERE condition. When DocRowwiseIterator::NextRow() populates the value map, it uses this
   // projection only to scan sub-documents. The query schema is used to select only referenced
@@ -1394,7 +1410,8 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
   // Fetching data.
   size_t match_count = 0;
   QLTableRow row;
-  while (fetched_rows < row_count_limit && !scan_time_exceeded) {
+  while (fetched_rows < row_count_limit &&
+         !scan_time_exceeded && (!has_response_size_limit || result_buffer->size() < response_size_limit )) {
     bool is_match = true;
 
     if (request_.has_index_request()) {
@@ -1455,8 +1472,9 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
     scan_time_exceeded = CoarseMonoClock::now() >= stop_scan;
   }
 
-  VLOG(1) << "Stopped iterator after " << match_count << " matches, "
-          << fetched_rows << " rows fetched";
+  VLOG(1) << "Stopped iterator after " << match_count << " matches, " << fetched_rows
+          << " rows fetched. Response buffer size: " << result_buffer->size()
+          << ", response size limit: " << response_size_limit;
   VLOG(1) << "Deadline is " << (scan_time_exceeded ? "" : "not ") << "exceeded";
 
   // Output aggregate values accumulated while looping over rows
@@ -1472,7 +1490,7 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
   // Unless iterated to the end, pack current iterator position into response, so follow up request
   // can seek to correct position and continue
-  if (request_.return_paging_state() && (fetched_rows >= row_count_limit || scan_time_exceeded)) {
+  if (request_.return_paging_state() && (fetched_rows >= row_count_limit || scan_time_exceeded || (has_response_size_limit && result_buffer->size() >= response_size_limit))) {
     RETURN_NOT_OK(SetPagingState(
         iter, request_.has_index_request() ? *index_schema : doc_schema, read_time,
         has_paging_state));
