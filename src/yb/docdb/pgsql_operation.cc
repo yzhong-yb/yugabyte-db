@@ -1314,8 +1314,6 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
           << ", Request limit: " << (request_.has_limit() ? request_.limit() : -1)
           << ", has_response_size_limit: " << has_response_size_limit;
 
-  //LOG(INFO) << "yzhong test row_count_limit " << row_count_limit;
-
   // Create the projection of regular columns selected by the row block plus any referenced in
   // the WHERE condition. When DocRowwiseIterator::NextRow() populates the value map, it uses this
   // projection only to scan sub-documents. The query schema is used to select only referenced
@@ -1409,9 +1407,9 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
   // Fetching data.
   size_t match_count = 0;
+  bool limit_exceeded = false;
   QLTableRow row;
-  while (fetched_rows < row_count_limit &&
-         !scan_time_exceeded && (!has_response_size_limit || result_buffer->size() < response_size_limit )) {
+  while (!limit_exceeded) {
     bool is_match = true;
 
     if (request_.has_index_request()) {
@@ -1470,6 +1468,10 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
     // Check if we are running out of time
     scan_time_exceeded = CoarseMonoClock::now() >= stop_scan;
+
+    limit_exceeded =
+      (fetched_rows >= row_count_limit || scan_time_exceeded ||
+      (has_response_size_limit && result_buffer->size() >= response_size_limit));
   }
 
   VLOG(1) << "Stopped iterator after " << match_count << " matches, " << fetched_rows
@@ -1490,7 +1492,7 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
   // Unless iterated to the end, pack current iterator position into response, so follow up request
   // can seek to correct position and continue
-  if (request_.return_paging_state() && (fetched_rows >= row_count_limit || scan_time_exceeded || (has_response_size_limit && result_buffer->size() >= response_size_limit))) {
+  if (request_.return_paging_state() && limit_exceeded) {
     RETURN_NOT_OK(SetPagingState(
         iter, request_.has_index_request() ? *index_schema : doc_schema, read_time,
         has_paging_state));
