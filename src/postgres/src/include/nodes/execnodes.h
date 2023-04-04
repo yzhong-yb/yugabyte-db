@@ -1280,6 +1280,7 @@ typedef struct ScanState
 	Relation	ss_currentRelation;
 	HeapScanDesc ss_currentScanDesc;
 	TupleTableSlot *ss_ScanTupleSlot;
+	int fetch_limit;
 } ScanState;
 
 /* ----------------

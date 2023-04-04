@@ -30,6 +30,7 @@
 #include "pg_yb_utils.h"
 
 static void recompute_limits(LimitState *node);
+static void set_fetch_limits(PlanState *node, int fetch_limit);
 static int64 compute_tuples_needed(LimitState *node);
 
 
@@ -59,6 +60,8 @@ ExecLimit(PlanState *pstate)
 	/*
 	 * Initialize LIMIT count and offset.
 	 */
+
+	// yzhong: after changes, won't need this
 	if (IsYugaByteEnabled()) {
 		pstate->state->yb_exec_params.limit_count = node->count;
 		pstate->state->yb_exec_params.limit_offset = node->offset;
@@ -84,6 +87,9 @@ ExecLimit(PlanState *pstate)
 			if (IsYugaByteEnabled()) {
 				pstate->state->yb_exec_params.limit_count = node->count;
 				pstate->state->yb_exec_params.limit_offset = node->offset;
+
+				set_fetch_limits(pstate->lefttree, node->count + node->offset);
+				set_fetch_limits(pstate->righttree, node->count + node->offset);
 			}
 			switch_fallthrough();
 
@@ -256,6 +262,48 @@ ExecLimit(PlanState *pstate)
 	Assert(!TupIsNull(slot));
 
 	return slot;
+}
+
+static void
+set_fetch_limits(PlanState *node, int fetch_limit)
+{
+	if (node == NULL)
+		return;
+
+	switch (nodeTag(node))
+	{
+			/*
+			 * Relation scan nodes can all be treated alike
+			 */
+		case T_SeqScanState:
+		case T_YbSeqScanState:
+		case T_SampleScanState:
+		case T_IndexScanState:
+		case T_IndexOnlyScanState:
+		case T_BitmapHeapScanState:
+		case T_TidScanState:
+		case T_ForeignScanState:
+		case T_CustomScanState:
+		{
+			ScanState *sstate = (ScanState *) node;
+			sstate->fetch_limit = fetch_limit;
+		}
+		break;
+
+		// if we encounter another LIMIT we stop.
+		// if we encounter a sort we stop.
+		// yzhong probably other nodes for this too...
+		case T_LimitState:
+		case T_SortState:
+		break;
+
+		default:
+		{
+			set_fetch_limits(node->lefttree, fetch_limit);
+			set_fetch_limits(node->righttree, fetch_limit);
+		}
+		break;
+	}
 }
 
 /*
