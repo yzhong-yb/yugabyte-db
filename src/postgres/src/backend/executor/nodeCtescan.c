@@ -210,6 +210,7 @@ ExecInitCteScan(CteScan *node, EState *estate, int eflags)
 	scanstate->eflags = eflags;
 	scanstate->cte_table = NULL;
 	scanstate->eof_cte = false;
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Find the already-initialized plan for the CTE query.

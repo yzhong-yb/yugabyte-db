@@ -131,6 +131,7 @@ ExecInitTableFuncScan(TableFuncScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecTableFuncScan;
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

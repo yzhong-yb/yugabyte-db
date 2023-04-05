@@ -550,6 +550,7 @@ ExecInitIndexOnlyScan(IndexOnlyScan *node, EState *estate, int eflags)
 	indexstate->ss.ps.plan = (Plan *) node;
 	indexstate->ss.ps.state = estate;
 	indexstate->ss.ps.ExecProcNode = ExecIndexOnlyScan;
+	indexstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

@@ -112,6 +112,7 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	subquerystate->ss.ps.plan = (Plan *) node;
 	subquerystate->ss.ps.state = estate;
 	subquerystate->ss.ps.ExecProcNode = ExecSubqueryScan;
+	subquerystate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

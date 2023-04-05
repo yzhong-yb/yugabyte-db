@@ -222,6 +222,7 @@ ExecInitBitmapIndexScan(BitmapIndexScan *node, EState *estate, int eflags)
 	indexstate->ss.ps.plan = (Plan *) node;
 	indexstate->ss.ps.state = estate;
 	indexstate->ss.ps.ExecProcNode = ExecBitmapIndexScan;
+	indexstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/* normally we don't make the result bitmap till runtime */
 	indexstate->biss_result = NULL;

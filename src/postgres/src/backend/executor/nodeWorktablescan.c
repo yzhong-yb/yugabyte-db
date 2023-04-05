@@ -148,6 +148,7 @@ ExecInitWorkTableScan(WorkTableScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecWorkTableScan;
 	scanstate->rustate = NULL;	/* we'll set this later */
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

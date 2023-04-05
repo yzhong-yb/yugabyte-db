@@ -50,6 +50,7 @@ ExecInitCustomScan(CustomScan *cscan, EState *estate, int eflags)
 	css->ss.ps.plan = &cscan->scan.plan;
 	css->ss.ps.state = estate;
 	css->ss.ps.ExecProcNode = ExecCustomScan;
+	css->ss.fetch_limit = yb_prefetch_limit;
 
 	/* create expression context for node */
 	ExecAssignExprContext(estate, &css->ss.ps);

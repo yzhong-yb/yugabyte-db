@@ -154,6 +154,7 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecSeqScan;
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

@@ -101,6 +101,7 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflag
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecNamedTuplestoreScan;
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	enr = get_ENR(estate->es_queryEnv, node->enrname);
 	if (!enr)

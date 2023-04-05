@@ -521,6 +521,7 @@ ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 	tidstate->ss.ps.plan = (Plan *) node;
 	tidstate->ss.ps.state = estate;
 	tidstate->ss.ps.ExecProcNode = ExecTidScan;
+	tidstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * Miscellaneous initialization

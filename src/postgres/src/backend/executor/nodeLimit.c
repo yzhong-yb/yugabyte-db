@@ -63,8 +63,8 @@ ExecLimit(PlanState *pstate)
 
 	// yzhong: after changes, won't need this
 	if (IsYugaByteEnabled()) {
-		pstate->state->yb_exec_params.limit_count = node->count;
-		pstate->state->yb_exec_params.limit_offset = node->offset;
+		//pstate->state->yb_exec_params.limit_count = node->count;
+		//pstate->state->yb_exec_params.limit_offset = node->offset;
 	}
 
 	/*
@@ -85,8 +85,8 @@ ExecLimit(PlanState *pstate)
 			 * Update LIMIT count and offset after recomputing.
 			 */
 			if (IsYugaByteEnabled()) {
-				pstate->state->yb_exec_params.limit_count = node->count;
-				pstate->state->yb_exec_params.limit_offset = node->offset;
+				//pstate->state->yb_exec_params.limit_count = node->count;
+				//pstate->state->yb_exec_params.limit_offset = node->offset;
 
 				set_fetch_limits(pstate->lefttree, node->count + node->offset);
 				set_fetch_limits(pstate->righttree, node->count + node->offset);
@@ -295,6 +295,7 @@ set_fetch_limits(PlanState *node, int fetch_limit)
 		// yzhong probably other nodes for this too...
 		case T_LimitState:
 		case T_SortState:
+		case T_GroupState:
 		break;
 
 		default:

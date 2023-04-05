@@ -303,6 +303,7 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecFunctionScan;
 	scanstate->eflags = eflags;
+	scanstate->ss.fetch_limit = yb_prefetch_limit;
 
 	/*
 	 * are we adding an ordinality column?

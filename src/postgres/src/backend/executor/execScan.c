@@ -133,6 +133,8 @@ ExecScan(ScanState *node,
 	projInfo = node->ps.ps_ProjInfo;
 	econtext = node->ps.ps_ExprContext;
 
+	node->ps.state->yb_exec_params.limit_count = node->fetch_limit;
+
 	/* interrupt checks are in ExecScanFetch */
 
 	/*
