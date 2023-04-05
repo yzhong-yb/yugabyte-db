@@ -30,7 +30,7 @@
 #include "pg_yb_utils.h"
 
 static void recompute_limits(LimitState *node);
-static void set_fetch_limits(PlanState *node, int fetch_limit);
+static void set_fetch_limits(PlanState *node, int fetch_limit, int joined_rows);
 static int64 compute_tuples_needed(LimitState *node);
 
 
@@ -88,8 +88,8 @@ ExecLimit(PlanState *pstate)
 				//pstate->state->yb_exec_params.limit_count = node->count;
 				//pstate->state->yb_exec_params.limit_offset = node->offset;
 
-				set_fetch_limits(pstate->lefttree, node->count + node->offset);
-				set_fetch_limits(pstate->righttree, node->count + node->offset);
+				set_fetch_limits(pstate->lefttree, node->count + node->offset, 0);
+				set_fetch_limits(pstate->righttree, node->count + node->offset, 0);
 			}
 			switch_fallthrough();
 
@@ -265,7 +265,7 @@ ExecLimit(PlanState *pstate)
 }
 
 static void
-set_fetch_limits(PlanState *node, int fetch_limit)
+set_fetch_limits(PlanState *node, int fetch_limit, int joined_rows)
 {
 	if (node == NULL)
 		return;
@@ -286,9 +286,53 @@ set_fetch_limits(PlanState *node, int fetch_limit)
 		case T_CustomScanState:
 		{
 			ScanState *sstate = (ScanState *) node;
-			sstate->fetch_limit = fetch_limit;
+
+			if (yb_enable_optimizer_statistics_fetch)
+				elog(WARNING, "optimizer statistics fetch ENABLED");
+			else
+			 	elog(WARNING, "optimizer statistics fetch DISABLED");
+
+			if (joined_rows > 0 && yb_enable_optimizer_statistics_fetch)
+			{
+				int scan_rows = (int) floor(sstate->ps.plan->plan_rows);
+
+				elog(WARNING, "yzhong scan_rows %d join_rows %d", scan_rows, joined_rows);
+
+				sstate->fetch_limit = (int)floor((double)scan_rows / (double)joined_rows * (double)fetch_limit);
+				elog(WARNING, "... fetch limit = %d", sstate->fetch_limit);
+			}
+			else
+			{
+				sstate->fetch_limit = fetch_limit;
+			}
+
+			set_fetch_limits(node->lefttree, fetch_limit, joined_rows);
+			set_fetch_limits(node->righttree, fetch_limit, joined_rows);
 		}
 		break;
+		
+		case T_NestLoopState:
+		{
+			NestLoopState *nlstate = (NestLoopState *) node;
+
+			joined_rows = (int) floor(nlstate->js.ps.plan->plan_rows);
+
+			set_fetch_limits(node->lefttree, fetch_limit, joined_rows);
+
+			// don't override fetch limit for inner scan.
+		}
+		break;
+		case T_HashJoinState:
+		{
+			HashJoinState *hjstate = (HashJoinState *) node;
+
+			joined_rows = (int) floor(hjstate->js.ps.plan->plan_rows);
+
+			set_fetch_limits(node->lefttree, fetch_limit, joined_rows);
+		}
+		break;
+
+
 
 		// if we encounter another LIMIT we stop.
 		// if we encounter a sort we stop.
@@ -300,8 +344,8 @@ set_fetch_limits(PlanState *node, int fetch_limit)
 
 		default:
 		{
-			set_fetch_limits(node->lefttree, fetch_limit);
-			set_fetch_limits(node->righttree, fetch_limit);
+			set_fetch_limits(node->lefttree, fetch_limit, joined_rows);
+			set_fetch_limits(node->righttree, fetch_limit, joined_rows);
 		}
 		break;
 	}

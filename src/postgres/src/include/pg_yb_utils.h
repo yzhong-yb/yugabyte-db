@@ -436,6 +436,7 @@ extern bool yb_enable_expression_pushdown;
  * See also the corresponding entries in guc.c.
  */
 extern bool yb_enable_optimizer_statistics;
+extern bool yb_enable_optimizer_statistics_fetch;
 
 /*
  * If true then condition rechecking is bypassed at YSQL if the condition is

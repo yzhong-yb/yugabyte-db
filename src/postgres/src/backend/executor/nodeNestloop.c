@@ -97,6 +97,8 @@ ExecNestLoop(PlanState *pstate)
 	 */
 	ENL1_printf("entering main loop");
 
+	elog(WARNING, "yzhong new node js %f", node->js.ps.plan->plan_rows);
+
 	for (;;)
 	{
 		/*

@@ -2106,6 +2106,16 @@ static struct config_bool ConfigureNamesBool[] =
 
 	},
 	{
+		{"yb_enable_optimizer_statistics_fetch", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("wip"),
+			NULL
+		},
+		&yb_enable_optimizer_statistics_fetch,
+		false,
+		NULL, NULL, NULL
+
+	},
+	{
 		{"yb_enable_expression_pushdown", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Push supported expressions down to DocDB for evaluation."),
 			NULL
