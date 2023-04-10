@@ -13,6 +13,7 @@
 package org.yb.pgsql;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,9 @@ import org.yb.util.json.Checkers;
 import org.yb.util.json.JsonUtil;
 import org.yb.pgsql.ExplainAnalyzeUtils.PlanCheckerBuilder;
 import org.yb.pgsql.ExplainAnalyzeUtils.TopLevelCheckerBuilder;
+
+import org.yb.client.ModifyClusterConfigAffinitizedLeaders;
+import org.yb.client.GetMasterClusterConfigResponse;
 
 import static org.yb.AssertionWrappers.*;
 import com.google.common.collect.ImmutableMap;
@@ -277,6 +281,132 @@ public class TestPgRegressTablespaces extends BasePgSQLTest {
       rows = getRowList(statement3, query);
       assertTrue(rows.toString().contains("Index Cond: ((id = 2) AND " +
         "((location)::text = (yb_server_region())::text))"));
+    }
+  }
+
+  @Test
+  public void testYbTablespaceMixed() throws Exception {
+    System.out.println("yzhong test");
+
+    // first, configure the cluster so that cloud1-region1-zone1 is a preferred zone.
+    // If not in a tablespace, leaders will be placed on cloud1-region1-zone1.
+    List<org.yb.CommonNet.CloudInfoPB> leaders = new ArrayList<org.yb.CommonNet.CloudInfoPB>();
+
+    org.yb.CommonNet.CloudInfoPB cloudInfo = org.yb.CommonNet.CloudInfoPB.newBuilder().
+            setPlacementCloud("cloud1").setPlacementRegion("region1").setPlacementZone("zone1").build();
+
+    leaders.add(cloudInfo);
+
+    ModifyClusterConfigAffinitizedLeaders operation =
+            new ModifyClusterConfigAffinitizedLeaders(miniCluster.getClient(), leaders);
+    try {
+      operation.doCall();
+    } catch (Exception e) {
+      assertTrue(false);
+    }
+
+    // Check the new config info.
+    // GetMasterClusterConfigResponse resp = miniCluster.getClient().getMasterClusterConfig();
+    // System.out.println(resp.getConfig());
+
+    try (Connection connection1 = getConnectionBuilder().withTServer(0).connect();
+         Statement statement1 = connection1.createStatement()) {
+
+      assertOneRow(statement1, "SELECT yb_server_region()", "region1");
+      assertOneRow(statement1, "SELECT yb_server_cloud()", "cloud1");
+      assertOneRow(statement1, "SELECT yb_server_zone()", "zone1");
+  
+      // Create some tablespaces, with leader preference on different placements
+      statement1.execute("CREATE TABLESPACE zone1pref " +
+          "  WITH (replica_placement=" +
+          "'{\"num_replicas\":4, \"placement_blocks\":" +
+          "[" + 
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1, \"leader_preference\":1}," +
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud1\",\"region\":\"region2\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud2\",\"region\":\"region2\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1}" + 
+          "]}')");
+
+      statement1.execute("CREATE TABLESPACE zone2pref " +
+          "  WITH (replica_placement=" +
+          "'{\"num_replicas\":4, \"placement_blocks\":" +
+          "[" + 
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1, \"leader_preference\":1}," +
+          "{\"cloud\":\"cloud1\",\"region\":\"region2\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud2\",\"region\":\"region2\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1}" + 
+          "]}')");
+
+      statement1.execute("CREATE TABLESPACE cloud2pref " +
+          "  WITH (replica_placement=" +
+          "'{\"num_replicas\":4, \"placement_blocks\":" +
+          "[" + 
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud1\",\"region\":\"region1\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1}," + 
+          "{\"cloud\":\"cloud1\",\"region\":\"region2\",\"zone\":\"zone1\"," +
+          "\"min_num_replicas\":1}," +
+          "{\"cloud\":\"cloud2\",\"region\":\"region2\",\"zone\":\"zone2\"," +
+          "\"min_num_replicas\":1, \"leader_preference\":1}" +
+          "]}')");
+
+      // Create a table on no tablespace. The cluster has cloud1-region1-zone1
+      // as a preferred zone, so that's the preferred zone for foo as well.
+      statement1.executeUpdate("CREATE TABLE foo(x int primary key, y int)");
+      // Create identical indexes, one in each tablespace.
+      statement1.executeUpdate(
+        "CREATE UNIQUE INDEX zone2ind ON foo(x) INCLUDE (y) TABLESPACE zone2pref");
+      statement1.executeUpdate(
+        "CREATE UNIQUE INDEX cloud2ind ON foo(x) INCLUDE (y) TABLESPACE cloud2pref");
+
+      // We're connecting from cloud1-region1-zone1. The closest index to us
+      // is the primary key index of foo (foo_pkey), since it will be placed
+      // on the preferred zone of this cluster. Therefore, we'd like to choose
+      // it over the other two indexes when doing an index scan.
+      //
+      // Currently, this test does not pass; we choose zone2ind instead.
+      ExplainAnalyzeUtils.testExplain(
+        statement1,
+        "SELECT * FROM foo WHERE x = 5",
+        makeTopLevelBuilder()
+          .storageReadRequests(Checkers.greater(0))
+          .storageWriteRequests(Checkers.equal(0))
+          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+          .plan(makePlanBuilder()
+            .indexName("foo_pkey")
+            .build())
+          .build());
+
+      // Next, try placing foo on a tablespace. This explicitly sets foo_pkey's placement
+      // to be cloud1-region1-zone1.
+      statement1.executeUpdate("DROP TABLE foo");
+      statement1.executeUpdate("CREATE TABLE foo(x int primary key, y int) TABLESPACE zone1pref");
+      statement1.executeUpdate(
+        "CREATE UNIQUE INDEX zone2ind ON foo(x) INCLUDE (y) TABLESPACE zone2pref");
+      statement1.executeUpdate(
+        "CREATE UNIQUE INDEX cloud2ind ON foo(x) INCLUDE (y) TABLESPACE cloud2pref");
+  
+      // Now this test does pass.
+      ExplainAnalyzeUtils.testExplain(
+        statement1,
+        "SELECT * FROM foo WHERE x = 5",
+        makeTopLevelBuilder()
+          .storageReadRequests(Checkers.greater(0))
+          .storageWriteRequests(Checkers.equal(0))
+          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+          .plan(makePlanBuilder()
+            .indexName("foo_pkey")
+            .build())
+          .build());
     }
   }
 }
