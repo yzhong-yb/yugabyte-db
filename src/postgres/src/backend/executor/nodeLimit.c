@@ -288,19 +288,11 @@ set_fetch_limits(PlanState *node, int fetch_limit, int joined_rows)
 		{
 			ScanState *sstate = (ScanState *) node;
 
-			if (yb_enable_optimizer_statistics_fetch)
-				elog(WARNING, "optimizer statistics fetch ENABLED");
-			else
-			 	elog(WARNING, "optimizer statistics fetch DISABLED");
-
 			if (joined_rows > 0 && yb_enable_optimizer_statistics_fetch)
 			{
 				int scan_rows = (int) floor(sstate->ps.plan->plan_rows);
 
-				elog(WARNING, "yzhong scan_rows %d join_rows %d", scan_rows, joined_rows);
-
 				sstate->fetch_limit = (int)floor((double)scan_rows / (double)joined_rows * (double)fetch_limit);
-				elog(WARNING, "... fetch limit = %d", sstate->fetch_limit);
 			}
 			else
 			{
