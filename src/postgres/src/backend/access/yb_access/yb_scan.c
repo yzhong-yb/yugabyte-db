@@ -2309,6 +2309,8 @@ void ybcCostEstimate(RelOptInfo *baserel, Selectivity selectivity,
 					 Cost *startup_cost, Cost *total_cost,
 					 Oid index_tablespace_oid)
 {
+	elog(WARNING, "yzhong ybc cost estimate");
+
 	if (is_seq_scan && !enable_seqscan)
 		*startup_cost = disable_cost;
 	else

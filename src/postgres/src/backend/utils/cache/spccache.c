@@ -201,11 +201,15 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 {
 	Assert(IsYugaByteEnabled());
     if (spcid == InvalidOid)
-       return UNKNOWN_DISTANCE;
+	{
+		elog(WARNING, "yzhong oid invalid");
+		return UNKNOWN_DISTANCE;
+	}
 
 	TableSpaceCacheEntry *spc = get_tablespace(spcid);
 	if (spc->opts.yb_opts == NULL)
 	{
+		elog(WARNING, "yzhong yb opts null");
 		return UNKNOWN_DISTANCE;
 	}
 
@@ -302,6 +306,15 @@ GeolocationDistance get_tablespace_distance(Oid spcid)
 			farthest = current_dist > farthest ? current_dist : farthest;
 		}
 	}
+	if (farthest == ZONE_LOCAL)
+		elog(WARNING, "yzhong zone local");
+	if (farthest == REGION_LOCAL)
+		elog(WARNING, "yzhong region local");
+	if (farthest == CLOUD_LOCAL)
+		elog(WARNING, "yzhong cloud local");
+	if (farthest == INTER_CLOUD)
+		elog(WARNING, "yzhong inter cloud");
+
 	return farthest;
 }
 
@@ -318,6 +331,7 @@ bool get_yb_tablespace_cost(Oid spcid, double *yb_tsp_cost)
 {
 	if (!yb_enable_geolocation_costing)
 	{
+		elog(WARNING, "yzhong no geolocation costing");
 		return false;
 	}
 
@@ -325,6 +339,7 @@ bool get_yb_tablespace_cost(Oid spcid, double *yb_tsp_cost)
 
 	if (!yb_tsp_cost)
 	{
+		elog(WARNING, "yzhong no yb tsp cost costing");
 		return false;
 	}
 

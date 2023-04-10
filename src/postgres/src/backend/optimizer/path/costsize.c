@@ -756,6 +756,8 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 
 	path->path.startup_cost = startup_cost;
 	path->path.total_cost = startup_cost + run_cost;
+
+	elog(WARNING, "yzhong index cost %d %f", index->indexoid, startup_cost + run_cost);
 }
 
 /*
