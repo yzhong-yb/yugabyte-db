@@ -3562,24 +3562,22 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
-		{"yb_prefetch_limit", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Maximum number of rows to prefetch. Override the "
-						 "limit specified by the gflags."),
+		{"ysql_prefetch_limit", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Maximum number of rows to fetch per scan."),
 			NULL
 		},
-		&yb_prefetch_limit,
-		1024, 1, INT_MAX,
+		&ysql_prefetch_limit,
+		1024, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 
 	{
-		{"yb_docdb_response_size_kb", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Maximum size of a fetch response. Override the "
-									 "limit specified by the gflags."),
-			NULL
+		{"yb_fetch_size_limit", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Maximum size of a fetch response."),
+			NULL, GUC_UNIT_KB
 		},
-		&yb_docdb_response_size_kb,
-		1024, 1, INT_MAX,
+		&yb_fetch_size_limit,
+		1024, 0, MAX_KILOBYTES,
 		NULL, NULL, NULL
 	},
 

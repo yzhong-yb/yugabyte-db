@@ -196,8 +196,8 @@ CreateExecutorState(void)
 	estate->yb_exec_params.stmt_in_txn_limit_ht_for_reads =
 		&estate->yb_es_in_txn_limit_ht_for_reads;
 
-	estate->yb_exec_params.yb_prefetch_limit = yb_prefetch_limit;
-	estate->yb_exec_params.yb_docdb_response_size_kb = yb_docdb_response_size_kb;
+	estate->yb_exec_params.yb_prefetch_limit = ysql_prefetch_limit;
+	estate->yb_exec_params.yb_fetch_size_limit = yb_fetch_size_limit;
 
 	return estate;
 }

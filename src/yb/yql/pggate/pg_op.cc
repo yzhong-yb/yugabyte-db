@@ -103,7 +103,7 @@ Result<bool> PrepareNextRequest(const PgTableDesc& table, PgsqlReadOp* read_op) 
   // number of rows. Here the operation fetches next page, so the estimation is proven incorrect.
   // So resetting the limit to prevent excessive RPCs due to too small fetch size, if the estimation
   // is too far from reality.
-  uint64_t prefetch_limit = yb_prefetch_limit;
+  uint64_t prefetch_limit = ysql_prefetch_limit;
   if (req->limit() < prefetch_limit) {
     req->set_limit(prefetch_limit);
   }

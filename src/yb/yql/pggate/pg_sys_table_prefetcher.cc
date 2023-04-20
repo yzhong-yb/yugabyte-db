@@ -236,7 +236,7 @@ void AddTargetColumn(LWPgsqlReadRequestPB* req, const PgColumn& column) {
 void SetupPaging(LWPgsqlReadRequestPB* req) {
   req->set_return_paging_state(true);
   req->set_is_forward_scan(true);
-  req->set_limit(yb_prefetch_limit);
+  req->set_limit(ysql_prefetch_limit);
 }
 
 template<class PB>
