@@ -25,6 +25,7 @@
 DECLARE_bool(rocksdb_use_logging_iterator);
 DECLARE_bool(ysql_enable_packed_row);
 DECLARE_bool(ysql_enable_packed_row_for_colocated_table);
+DECLARE_uint64(ysql_prefetch_limit);
 
 namespace yb::pgwrapper {
 

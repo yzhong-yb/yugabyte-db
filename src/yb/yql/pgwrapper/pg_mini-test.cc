@@ -103,6 +103,8 @@ DECLARE_bool(rocksdb_disable_compactions);
 DECLARE_uint64(pg_client_session_expiration_ms);
 DECLARE_uint64(pg_client_heartbeat_interval_ms);
 
+DECLARE_uint64(ysql_prefetch_limit);
+
 namespace yb {
 namespace pgwrapper {
 namespace {
