@@ -1219,8 +1219,7 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
   if (exec_params_.limit_use_default) {
     row_limit = predicted_row_limit;
     suppress_next_result_prefetching_ = false;
-  }
-  else if (predicted_row_limit > 0) {
+  } else if (predicted_row_limit > 0) {
     row_limit = std::min(row_limit, predicted_row_limit);
     suppress_next_result_prefetching_ = false;
   }
