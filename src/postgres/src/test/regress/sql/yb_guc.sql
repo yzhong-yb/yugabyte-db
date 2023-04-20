@@ -28,7 +28,15 @@ set yb_transaction_priority_lower_bound = 0.6;
 set ysql_prefetch_limit = 100;
 show ysql_prefetch_limit;
 
-set ysql_prefetch_limit = 0;  -- ERROR since ysql_prefetch_limit must be positive.
+set ysql_prefetch_limit = -1;  -- ERROR since ysql_prefetch_limit must be non-negative.
+
+-- Test yb_fetch_size_limit
+set yb_fetch_size_limit = '2MB';
+show yb_fetch_size_limit;
+set yb_fetch_size_limit = 1234;
+show yb_fetch_size_limit;
+
+set yb_fetch_size_limit = -1;  -- ERROR since yb_fetch_size_limit must be non-negative.
 
 -- Check enable_seqscan, enable_indexscan, enable_indexonlyscan for YB scans.
 CREATE TABLE test_scan (i int, j int);

@@ -3563,7 +3563,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"ysql_prefetch_limit", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Maximum number of rows to fetch per scan."),
+			gettext_noop("Maximum number of rows to fetch per scan. 0 = No limit"),
 			NULL
 		},
 		&ysql_prefetch_limit,
@@ -3573,11 +3573,11 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"yb_fetch_size_limit", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Maximum size of a fetch response."),
+			gettext_noop("Maximum size of a fetch response. 0 = No limit"),
 			NULL, GUC_UNIT_KB
 		},
 		&yb_fetch_size_limit,
-		1024, 0, MAX_KILOBYTES,
+		0, 0, MAX_KILOBYTES,
 		NULL, NULL, NULL
 	},
 

@@ -1233,14 +1233,14 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
     req.set_size_limit(predicted_size_limit);
   }
 
-  LOG(INFO) << __func__
+  VLOG(3) << __func__
           << " exec_params_.limit_count=" << exec_params_.limit_count
           << " exec_params_.limit_offset=" << exec_params_.limit_offset
           << " exec_params_.limit_use_default=" << exec_params_.limit_use_default
           << " predicted_row_limit=" << predicted_row_limit
-          << " row_limit=" << row_limit 
+          << " row_limit=" << row_limit
           << (row_limit == 0 ? " (Unlimited)" : "")
-          << " size_limit=" << predicted_size_limit 
+          << " size_limit=" << predicted_size_limit
           << (predicted_size_limit == 0 ? " (Unlimited)" : "");
 }
 
