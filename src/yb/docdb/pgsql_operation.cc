@@ -1464,13 +1464,10 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
       ++fetched_rows;
     }
 
-    // Check if we are running out of time
-    scan_time_exceeded = CoarseMonoClock::now() >= stop_scan;
-
     limit_exceeded =
-      (scan_time_exceeded ||
-      fetched_rows >= row_count_limit ||
-      (has_response_size_limit && result_buffer->size() >= response_size_limit));
+      (CoarseMonoClock::now() >= stop_scan ||
+       fetched_rows >= row_count_limit ||
+       (has_response_size_limit && result_buffer->size() >= response_size_limit));
   }
 
   VLOG(1) << "Stopped iterator after " << match_count << " matches, " << fetched_rows
