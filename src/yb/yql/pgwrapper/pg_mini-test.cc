@@ -103,7 +103,7 @@ DECLARE_bool(rocksdb_disable_compactions);
 DECLARE_uint64(pg_client_session_expiration_ms);
 DECLARE_uint64(pg_client_heartbeat_interval_ms);
 
-DECLARE_uint64(ysql_ysql_prefetch_limit);
+DECLARE_uint64(ysql_prefetch_limit);
 
 namespace yb {
 namespace pgwrapper {
@@ -1365,7 +1365,7 @@ class PgMiniTabletSplitTest : public PgMiniTest {
     FLAGS_heartbeat_interval_ms = 1000;
     FLAGS_tserver_heartbeat_metrics_interval_ms = 1000;
     FLAGS_TEST_inject_delay_between_prepare_ybctid_execute_batch_ybctid_ms = 4000;
-    FLAGS_ysql_ysql_prefetch_limit = 32;
+    FLAGS_ysql_prefetch_limit = 32;
     PgMiniTest::SetUp();
   }
 };

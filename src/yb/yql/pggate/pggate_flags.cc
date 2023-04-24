@@ -42,6 +42,9 @@ DEFINE_test_flag(bool, pggate_ignore_tserver_shm, false,
 DEFINE_UNKNOWN_int32(ysql_request_limit, 1024,
              "Maximum number of requests to be sent at once");
 
+DEFINE_UNKNOWN_uint64(ysql_prefetch_limit, 1024,
+              "DEPRECATED - Use yb_fetch_row_limit");
+
 DEPRECATE_FLAG(double, ysql_backward_prefetch_scale_factor, "11_2022");
 
 DEFINE_UNKNOWN_uint64(ysql_session_max_batch_size, 3072,

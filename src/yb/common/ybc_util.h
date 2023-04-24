@@ -102,8 +102,7 @@ extern int yb_xcluster_consistency_level;
 /*
  * Allows for customizing the number of rows to be prefetched.
  */
-extern int ysql_prefetch_limit;
-
+extern int yb_fetch_row_limit;
 extern int yb_fetch_size_limit;
 
 typedef struct YBCStatusStruct* YBCStatus;

@@ -24,11 +24,11 @@ set yb_transaction_priority_upper_bound = 0.6;
 set yb_transaction_priority_lower_bound = 0.4;
 set yb_transaction_priority_lower_bound = 0.6;
 
--- Test ysql_prefetch_limit
-set ysql_prefetch_limit = 100;
-show ysql_prefetch_limit;
+-- Test yb_fetch_row_limit
+set yb_fetch_row_limit = 100;
+show yb_fetch_row_limit;
 
-set ysql_prefetch_limit = -1;  -- ERROR since ysql_prefetch_limit must be non-negative.
+set yb_fetch_row_limit = -1;  -- ERROR since yb_fetch_row_limit must be non-negative.
 
 -- Test yb_fetch_size_limit
 set yb_fetch_size_limit = '2MB';

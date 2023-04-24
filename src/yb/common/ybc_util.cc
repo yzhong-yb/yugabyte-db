@@ -65,7 +65,7 @@ int ysql_max_in_flight_ops = 0;
 
 int yb_xcluster_consistency_level = XCLUSTER_CONSISTENCY_DATABASE;
 
-int ysql_prefetch_limit = 0;
+int yb_fetch_row_limit = 0;
 
 int yb_fetch_size_limit = 0;
 

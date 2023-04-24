@@ -298,7 +298,7 @@ typedef struct PgExecParameters {
   bool is_index_backfill = false;
   bool is_select_distinct = false;
   int work_mem = 4096; // Default work_mem in guc.c
-  int yb_prefetch_limit = 1024; // Default ysql_prefetch_limit in guc.c
+  int yb_fetch_row_limit = 1024; // Default yb_fetch_row_limit in guc.c
   int yb_fetch_size_limit = 0; // Default yb_fetch_size_limit in guc.c
 #else
   uint64_t limit_count;
@@ -314,7 +314,7 @@ typedef struct PgExecParameters {
   bool is_index_backfill;
   bool is_select_distinct;
   int work_mem;
-  int yb_prefetch_limit;
+  int yb_fetch_row_limit;
   int yb_fetch_size_limit;
 #endif
 } YBCPgExecParameters;

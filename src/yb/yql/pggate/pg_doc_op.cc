@@ -1209,7 +1209,7 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
   auto& req = read_op_->read_request();
 
   // Limits: 0 means 'unlimited'.
-  uint64_t predicted_row_limit = exec_params_.yb_prefetch_limit;
+  uint64_t predicted_row_limit = exec_params_.yb_fetch_row_limit;
   uint64_t predicted_size_limit = exec_params_.yb_fetch_size_limit;
 
   // Use statement LIMIT(count + offset) if it is smaller than the predicted limit.

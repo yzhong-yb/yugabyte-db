@@ -24,16 +24,16 @@ set yb_transaction_priority_upper_bound = 0.3;
 set yb_transaction_priority_upper_bound = 0.6;
 set yb_transaction_priority_lower_bound = 0.4;
 set yb_transaction_priority_lower_bound = 0.6;
--- Test ysql_prefetch_limit
-set ysql_prefetch_limit = 100;
-show ysql_prefetch_limit;
- ysql_prefetch_limit
----------------------
+-- Test yb_fetch_row_limit
+set yb_fetch_row_limit = 100;
+show yb_fetch_row_limit;
+ yb_fetch_row_limit
+--------------------
  100
 (1 row)
 
-set ysql_prefetch_limit = -1;  -- ERROR since ysql_prefetch_limit must be non-negative.
-ERROR:  -1 is outside the valid range for parameter "ysql_prefetch_limit" (0 .. 2147483647)
+set yb_fetch_row_limit = -1;  -- ERROR since yb_fetch_row_limit must be non-negative.
+ERROR:  -1 is outside the valid range for parameter "yb_fetch_row_limit" (0 .. 2147483647)
 -- Test yb_fetch_size_limit
 set yb_fetch_size_limit = '2MB';
 show yb_fetch_size_limit;

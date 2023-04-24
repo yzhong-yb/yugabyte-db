@@ -180,7 +180,7 @@ DEFINE_RUNTIME_PG_FLAG(bool, yb_disable_wait_for_backends_catalog_version, false
     " Although it is runtime-settable, the effects won't take place for any in-progress"
     " queries.");
 
-DEFINE_RUNTIME_PG_FLAG(uint64, ysql_prefetch_limit, 1024,
+DEFINE_RUNTIME_PG_FLAG(uint64, yb_fetch_row_limit, 1024,
     "Maximum number of rows to fetch per scan.");
 
 DEFINE_RUNTIME_PG_FLAG(uint64, yb_fetch_size_limit, 0,
