@@ -1302,15 +1302,13 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
   // We also limit the response's size.
   size_t response_size_limit = std::numeric_limits<std::size_t>::max();
-  bool has_response_size_limit = false;
 
   if (request_.has_size_limit() && request_.size_limit() > 0) {
     response_size_limit = request_.size_limit() * 1_KB;
-    has_response_size_limit = true;
   }
 
   VLOG(4) << "Row count limit: " << row_count_limit
-          << ", size limit: " << (has_response_size_limit ? response_size_limit : 0);
+          << ", size limit: " << response_size_limit;
 
   // Create the projection of regular columns selected by the row block plus any referenced in
   // the WHERE condition. When DocRowwiseIterator::NextRow() populates the value map, it uses this
@@ -1467,7 +1465,7 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
     limit_exceeded =
       (CoarseMonoClock::now() >= stop_scan ||
        fetched_rows >= row_count_limit ||
-       (has_response_size_limit && result_buffer->size() >= response_size_limit));
+       result_buffer->size() >= response_size_limit);
   }
 
   VLOG(1) << "Stopped iterator after " << match_count << " matches, " << fetched_rows
