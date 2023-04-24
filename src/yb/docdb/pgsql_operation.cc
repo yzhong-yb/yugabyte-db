@@ -1295,26 +1295,21 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
   // Requests normally have a limit on how many rows to return
   size_t row_count_limit = std::numeric_limits<std::size_t>::max();
-  bool has_row_count_limit = false;
 
-  if (request_.has_limit()) {
-    if (request_.limit() == 0) {
-      return fetched_rows;
-    }
+  if (request_.has_limit() && request_.limit() > 0) {
     row_count_limit = request_.limit();
-    has_row_count_limit = true;
   }
 
   // We also limit the response's size.
   size_t response_size_limit = std::numeric_limits<std::size_t>::max();
   bool has_response_size_limit = false;
 
-  if (request_.has_size_limit()) {
+  if (request_.has_size_limit() && request_.size_limit() > 0) {
     response_size_limit = request_.size_limit() * 1_KB;
     has_response_size_limit = true;
   }
 
-  VLOG(4) << "Row count limit: " << (has_row_count_limit ? row_count_limit : 0)
+  VLOG(4) << "Row count limit: " << row_count_limit
           << ", size limit: " << (has_response_size_limit ? response_size_limit : 0);
 
   // Create the projection of regular columns selected by the row block plus any referenced in
@@ -1474,7 +1469,7 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
 
     limit_exceeded =
       (scan_time_exceeded ||
-      (has_row_count_limit && fetched_rows >= row_count_limit) ||
+      fetched_rows >= row_count_limit ||
       (has_response_size_limit && result_buffer->size() >= response_size_limit));
   }
 

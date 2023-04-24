@@ -1224,13 +1224,8 @@ void PgDocReadOp::SetRequestPrefetchLimit() {
     suppress_next_result_prefetching_ = false;
   }
 
-  // Not setting a limit value represents 'unlimited'.
-  if (row_limit > 0) {
-    req.set_limit(row_limit);
-  }
-  if (predicted_size_limit > 0) {
-    req.set_size_limit(predicted_size_limit);
-  }
+  req.set_limit(row_limit);
+  req.set_size_limit(predicted_size_limit);
 
   VLOG(3) << __func__
           << " exec_params_.limit_count=" << exec_params_.limit_count
