@@ -109,7 +109,7 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
     try (Statement statement = connection.createStatement()) {
       statement.execute("create table t2 (k bigint, v char(109), primary key (k asc))");
       statement.execute("insert into t2 (select generate_series, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' from generate_series(1, 100000))");
-      
+
       statement.execute("SET yb_fetch_row_limit=1024");
       statement.execute("SET yb_fetch_size_limit=0");
       ExplainAnalyzeUtils.testExplain(
