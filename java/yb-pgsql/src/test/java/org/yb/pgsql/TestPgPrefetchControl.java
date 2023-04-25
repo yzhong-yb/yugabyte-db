@@ -28,6 +28,12 @@ import java.util.List;
 
 import static org.yb.AssertionWrappers.assertEquals;
 
+import org.yb.util.json.Checker;
+import org.yb.util.json.Checkers;
+import org.yb.util.json.JsonUtil;
+import org.yb.pgsql.ExplainAnalyzeUtils.PlanCheckerBuilder;
+import org.yb.pgsql.ExplainAnalyzeUtils.TopLevelCheckerBuilder;
+
 // In this test module we adjust the number of rows to be prefetched by PgGate and make sure that
 // the result for the query are correct.
 @RunWith(value=YBTestRunner.class)
@@ -50,8 +56,16 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
     }
   }
 
+  private TopLevelCheckerBuilder makeTopLevelBuilder() {
+    return JsonUtil.makeCheckerBuilder(TopLevelCheckerBuilder.class);
+  }
+
+  private static PlanCheckerBuilder makePlanBuilder() {
+    return JsonUtil.makeCheckerBuilder(PlanCheckerBuilder.class, false);
+  }
+
   @Test
-  public void testSimplePrefetch() throws SQLException {
+  public void testSimplePrefetch() throws Exception {
     String tableName = "TestPrefetch";
     createPrefetchTable(tableName);
 
@@ -75,6 +89,51 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
       try (ResultSet rs = statement.executeQuery(stmt)) {
         assertEquals(insertedRows, getRowList(rs));
       }
+
+      statement.execute("set yb_debug_log_docdb_requests to true");
+
+      ExplainAnalyzeUtils.testExplain(
+        statement,
+        "SELECT * FROM TestPrefetch",
+        makeTopLevelBuilder()
+          .storageReadRequests(Checkers.greaterOrEqual(50))
+          .storageWriteRequests(Checkers.equal(0))
+          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+          .plan(makePlanBuilder().build())
+          .build());
+    }
+  }
+
+  @Test
+  public void test() throws Exception {
+    try (Statement statement = connection.createStatement()) {
+      statement.execute("create table t2 (k bigint, v char(109), primary key (k asc))");
+      statement.execute("insert into t2 (select generate_series, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' from generate_series(1, 100000))");
+      
+      statement.execute("SET yb_fetch_row_limit=1024");
+      statement.execute("SET yb_fetch_size_limit=0");
+      ExplainAnalyzeUtils.testExplain(
+        statement,
+        "SELECT * FROM t2",
+        makeTopLevelBuilder()
+          .storageReadRequests(Checkers.equal(98))
+          .storageWriteRequests(Checkers.equal(0))
+          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+          .plan(makePlanBuilder().build())
+          .build());
+
+      statement.execute("SET yb_fetch_row_limit=0");
+      statement.execute("SET yb_fetch_size_limit=512");
+      ExplainAnalyzeUtils.testExplain(
+        statement,
+        "SELECT * FROM t2",
+        makeTopLevelBuilder()
+          .storageReadRequests(Checkers.equal(25))
+          .storageWriteRequests(Checkers.equal(0))
+          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+          .plan(makePlanBuilder().build())
+          .build());
+
     }
   }
 
