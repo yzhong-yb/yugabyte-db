@@ -1462,8 +1462,9 @@ Result<size_t> PgsqlReadOperation::ExecuteScalar(const YQLStorageIf& ql_storage,
       ++fetched_rows;
     }
 
+    scan_time_exceeded = CoarseMonoClock::now() >= stop_scan;
     limit_exceeded =
-      (CoarseMonoClock::now() >= stop_scan ||
+      (scan_time_exceeded ||
        fetched_rows >= row_count_limit ||
        result_buffer->size() >= response_size_limit);
   }
