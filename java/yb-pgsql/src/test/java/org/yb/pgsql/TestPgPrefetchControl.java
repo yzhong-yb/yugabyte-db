@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -64,6 +65,12 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
     return JsonUtil.makeCheckerBuilder(PlanCheckerBuilder.class, false);
   }
 
+  private static String makeFillerString(int n) {
+    char[] charArray = new char[n];
+    Arrays.fill(charArray, 'a');
+    return new String(charArray);
+  }
+
   @Test
   public void testSimplePrefetch() throws Exception {
     String tableName = "TestPrefetch";
@@ -90,11 +97,10 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
         assertEquals(insertedRows, getRowList(rs));
       }
 
-      statement.execute("set yb_debug_log_docdb_requests to true");
-
+      // Check that ysql_prefetch_limit is respected.
       ExplainAnalyzeUtils.testExplain(
         statement,
-        "SELECT * FROM TestPrefetch",
+        stmt,
         makeTopLevelBuilder()
           .storageReadRequests(Checkers.greaterOrEqual(50))
           .storageWriteRequests(Checkers.equal(0))
@@ -104,36 +110,42 @@ public class TestPgPrefetchControl extends BasePgSQLTest {
     }
   }
 
+  public void checkFetchLimitReadRequests(Statement statement, String stmt,
+    int rowLimit, int sizeLimit, int expectedReadRequests) throws Exception {
+
+    statement.execute(String.format("SET yb_fetch_row_limit=%d", rowLimit));
+    statement.execute(String.format("SET yb_fetch_size_limit=%d", sizeLimit));
+    ExplainAnalyzeUtils.testExplain(
+      statement,
+      stmt,
+      makeTopLevelBuilder()
+        .storageReadRequests(Checkers.equal(expectedReadRequests))
+        .storageWriteRequests(Checkers.equal(0))
+        .storageExecutionTime(Checkers.greaterOrEqual(0.0))
+        .plan(makePlanBuilder().build())
+        .build());
+  }
+
   @Test
-  public void test() throws Exception {
+  public void testSizeBasedFetch() throws Exception {
     try (Statement statement = connection.createStatement()) {
-      statement.execute("create table t2 (k bigint, v char(109), primary key (k asc))");
-      statement.execute("insert into t2 (select s, '' from generate_series(1, 100000) as s)");
+      String tableName = "TestPrefetch";
+      int charLength = 109;
+      String fillerData = makeFillerString(charLength);
 
-      statement.execute("SET yb_fetch_row_limit=1024");
-      statement.execute("SET yb_fetch_size_limit=0");
-      ExplainAnalyzeUtils.testExplain(
-        statement,
-        "SELECT * FROM t2",
-        makeTopLevelBuilder()
-          .storageReadRequests(Checkers.equal(98))
-          .storageWriteRequests(Checkers.equal(0))
-          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
-          .plan(makePlanBuilder().build())
-          .build());
+      String stmt = String.format("create table %s (k bigint, v char(%d), primary key (k asc))",
+        tableName, charLength);
+      statement.execute(stmt);
+      stmt = String.format("insert into %s (select s, '%s' from generate_series(1, 100000) as s)",
+        tableName, fillerData);
+      statement.execute(stmt);
 
-      statement.execute("SET yb_fetch_row_limit=0");
-      statement.execute("SET yb_fetch_size_limit=512");
-      ExplainAnalyzeUtils.testExplain(
-        statement,
-        "SELECT * FROM t2",
-        makeTopLevelBuilder()
-          .storageReadRequests(Checkers.equal(25))
-          .storageWriteRequests(Checkers.equal(0))
-          .storageExecutionTime(Checkers.greaterOrEqual(0.0))
-          .plan(makePlanBuilder().build())
-          .build());
+      stmt = String.format("SELECT * FROM %s", tableName);
 
+      checkFetchLimitReadRequests(statement, stmt, 1024,  0,    98);
+      checkFetchLimitReadRequests(statement, stmt, 0,     512,  25);
+      checkFetchLimitReadRequests(statement, stmt, 0,     1024, 13);
+      checkFetchLimitReadRequests(statement, stmt, 0,     0,    1);
     }
   }
 
