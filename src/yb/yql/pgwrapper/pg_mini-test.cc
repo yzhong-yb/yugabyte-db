@@ -1363,7 +1363,7 @@ class PgMiniTabletSplitTest : public PgMiniTest {
     FLAGS_heartbeat_interval_ms = 1000;
     FLAGS_tserver_heartbeat_metrics_interval_ms = 1000;
     FLAGS_TEST_inject_delay_between_prepare_ybctid_execute_batch_ybctid_ms = 4000;
-    //FLAGS_ysql_prefetch_limit = 32;
+    // FLAGS_ysql_prefetch_limit = 32;
     PgMiniTest::SetUp();
   }
 };

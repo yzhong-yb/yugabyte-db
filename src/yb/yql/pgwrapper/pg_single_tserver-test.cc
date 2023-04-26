@@ -105,7 +105,7 @@ TEST_F(PgSingleTServerTest, YB_DISABLE_TEST_IN_TSAN(ManyRowsInsert)) {
 class PgMiniBigPrefetchTest : public PgSingleTServerTest {
  public:
   void SetUp() override {
-    //FLAGS_ysql_prefetch_limit = 20000000;
+    // FLAGS_ysql_prefetch_limit = 20000000;
     PgSingleTServerTest::SetUp();
   }
 
@@ -227,7 +227,7 @@ TEST_F(PgSingleTServerTest, YB_DISABLE_TEST_IN_TSAN(BigValue)) {
 class PgNoPrefetchTest : public PgSingleTServerTest {
  protected:
   void SetUp() override {
-   //FLAGS_ysql_prefetch_limit = 1;
+    // FLAGS_ysql_prefetch_limit = 1;
     PgSingleTServerTest::SetUp();
   }
 
