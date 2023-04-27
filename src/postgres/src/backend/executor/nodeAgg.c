@@ -1538,6 +1538,10 @@ yb_agg_pushdown_supported(AggState *aggstate)
 	/* Initially set pushdown supported to false. */
 	aggstate->yb_pushdown_supported = false;
 
+	/* Pushdown must be enabled. */
+	if (!yb_enable_aggregate_pushdown)
+		return;
+
 	/* Phase 0 is a dummy phase, so there should be two phases. */
 	if (aggstate->numphases != 2)
 		return;

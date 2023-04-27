@@ -2213,6 +2213,17 @@ static struct config_bool ConfigureNamesBool[] =
 		NULL, NULL, NULL
 	},
 
+	{
+		{"yb_enable_aggregate_pushdown", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Push supported aggregates down to DocDB for "
+						 "partial evaluation."),
+			NULL
+		},
+		&yb_enable_aggregate_pushdown,
+		true,
+		NULL, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL, NULL

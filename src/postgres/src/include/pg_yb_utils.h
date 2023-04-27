@@ -475,6 +475,13 @@ extern bool yb_enable_sequence_pushdown;
  */
 extern bool yb_disable_wait_for_backends_catalog_version;
 
+/*
+ * Enables aggregate pushdown.
+ * If true, planner sends supported aggregates to DocDB for partial evaluation
+ */
+extern bool yb_enable_aggregate_pushdown;
+
+
 //------------------------------------------------------------------------------
 // GUC variables needed by YB via their YB pointers.
 extern int StatementTimeout;
